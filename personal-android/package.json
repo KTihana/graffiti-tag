@@ -1,6 +1,6 @@
 {
   "name": "graffiti-tag-personal-android",
-  "version": "1.0.0",
+  "version": "1.0.4",
   "description": "Local Capacitor shell for the Graffiti Tag personal Android archive",
   "main": "index.js",
   "scripts": {

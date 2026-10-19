@@ -74,20 +74,28 @@ export function IconButton({
   label,
   onPress,
   dark = false,
+  disabled = false,
+  color,
 }: {
   icon: IconName;
   label: string;
   onPress: () => void;
   dark?: boolean;
+  disabled?: boolean;
+  color?: string;
 }) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
+      accessibilityState={{ disabled, busy: disabled }}
+      aria-disabled={disabled}
+      aria-busy={disabled}
+      disabled={disabled}
       onPress={onPress}
       style={[s.iconButton, dark && { backgroundColor: colors.ink }]}
     >
-      <Icon name={icon} color={dark ? colors.lime : colors.ink} />
+      <Icon name={icon} color={color || (dark ? colors.lime : colors.ink)} />
     </Pressable>
   );
 }
@@ -267,8 +275,9 @@ const s = StyleSheet.create({
     padding: 16,
     minHeight: 52,
   },
-  buttonText: { fontFamily: fonts.bold, fontSize: 14 },
+  buttonText: { fontFamily: fonts.bold, fontSize: 14, flexShrink: 1, textAlign: 'center' },
   iconButton: {
+    flexShrink: 0,
     width: 44,
     height: 44,
     borderRadius: 15,

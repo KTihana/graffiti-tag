@@ -72,3 +72,24 @@ Browser tests exercise filtering, wall history, bookmarks, edits/restoration, a 
 ## Credits
 
 Demo photos by Gveret Tered, Wikimedia Commons, [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Sources and display treatment are recorded in [ATTRIBUTION.md](../mobile/assets/demo/ATTRIBUTION.md) and in the app. The application source and user-contributed photographs have separate licensing concerns.
+
+### Place search
+
+The personal Android shell and Leaflet web map use Photon for submitted city/address searches;
+Google Maps builds retain Google's geocoder. `EXPO_PUBLIC_PHOTON_URL` can select a different
+Photon-compatible endpoint at build time. The default is `https://photon.komoot.io/api/`.
+Only explicit submissions send requests; identical pending requests are shared and up to
+100 successful lookups are cached for the session. Requests time out after 12 seconds.
+The map displays attribution to OpenStreetMap contributors.
+
+The [Photon public server](https://github.com/komoot/photon#demo-server) allows reasonable
+project traffic, with no availability guarantee. Use a dedicated instance before scaling
+beyond personal use. Place search requires internet; archive filtering remains local in
+personal mode. Search errors persist independently of archive/map refreshes.
+
+Regression checks: `npm test` and, against a personal build preview,
+`npx playwright test --config playwright.personal.config.ts search.spec.ts`.
+
+### Android update checks
+
+Personal Android 1.0.4 adds automatic startup checks and My archive > App updates. The native bridge reads the installed version through Capacitor App.getInfo; the shared service compares numeric versions and accepts only stable personal release tags with an APK asset from this repository. A failed check does not block the local archive. The browser opens the GitHub APK download and Android asks the user to install it. Publishing a newer compatible APK as the latest GitHub release makes it discoverable from installed apps.

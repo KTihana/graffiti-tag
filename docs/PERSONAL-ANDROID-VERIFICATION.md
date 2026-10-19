@@ -51,3 +51,11 @@ Personal Android 1.0.3, version code 4. SHA-256: `d952c34b5ba65cb58b853a1d1adcfd
 The personal build previously copied the oversized, opaque legacy icon into the adaptive foreground, so circular launcher masks clipped the pin. The build now uses the existing transparent, padded `android-icon-foreground.png` for adaptive foreground resources at every density. Legacy icons retain their existing source. The full-screen loading design is unchanged.
 
 Verified script syntax, APK build/signature and installation over 1.0.2 in the API 36 emulator. Inspected the installed launcher icon and a circular-mask preview. All foreground pixels with alpha greater than 8 lie within normalized radius 0.2819, inside Android's guaranteed circular safe radius of 33/108 (0.3056); the tip and paint drips remain visible.
+
+## 19 October 2026: in-app updates, location, and search
+
+Personal Android 1.0.4, version code 5. SHA-256: `109f076e3aa6dfc034faff2b816f6a8bc9b1059499bb59df2f6bca3fb829a9d3`.
+
+Added startup release checks, a map update banner, and My archive > App updates with installed version, manual retry, release notes and APK download. The download opens externally and Android confirms installation. The app accepts stable personal tags and the repository's expected APK asset; offline checks do not block the archive. This release also includes foreground GPS position/accuracy, permission handling, Photon place lookup, and responsive map controls.
+
+Validation: TypeScript, Expo lint, all 29 unit/database tests, 9 demo browser tests and 7 personal browser tests. Update tests cover numeric version comparison, release/asset validation, automatic detection, native installed version, download URL, offline errors, retry, and current-version status. Built and verified the APK signature. Installed the final 1.0.4 APK over the emulator's existing installation without clearing data; archive and bookmark local-storage values were unchanged, and the native version bridge and update controls were present. Physical-phone verification remains pending.

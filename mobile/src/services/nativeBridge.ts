@@ -1,3 +1,5 @@
+import type { UserLocation } from '../types';
+
 export type NativePhoto = {
   uri: string;
   mimeType: string;
@@ -6,8 +8,13 @@ export type NativePhoto = {
 
 export type PersonalNativeBridge = {
   isNative: true;
+  getAppVersion?: () => Promise<string>;
   takePhoto: (camera: boolean) => Promise<NativePhoto>;
-  getLocation: () => Promise<{ latitude: number; longitude: number }>;
+  getLocation: () => Promise<UserLocation>;
+  watchLocation: (
+    onPosition: (position: UserLocation) => void,
+    onError: (error: unknown) => void,
+  ) => Promise<() => void>;
   saveBackup: (contents: string, filename: string) => Promise<void>;
   consumeRestoredPhoto?: () => NativePhoto | undefined;
 };

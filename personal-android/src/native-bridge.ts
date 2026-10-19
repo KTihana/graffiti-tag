@@ -18,14 +18,17 @@ type NativePhoto = {
   mimeType: string;
   exif?: Record<string, unknown>;
 };
+type UserLocation = { latitude: number; longitude: number; accuracy: number | null };
 
 const RESTORED_PHOTO_KEY = 'graffiti-native-restored-photo';
 const CAMERA_ROUTE_KEY = 'graffiti-native-camera-route';
 
 type GraffitiNativeBridge = {
   isNative: true;
+  getAppVersion(): Promise<string>;
   takePhoto(camera: boolean): Promise<NativePhoto>;
-  getLocation(): Promise<{ latitude: number; longitude: number }>;
+  getLocation(): Promise<UserLocation>;
+  watchLocation(onPosition: (position: UserLocation) => void, onError: (error: unknown) => void): Promise<() => void>;
   saveBackup(contents: string, filename: string): Promise<void>;
   lastRestoredPhoto?: NativePhoto;
   consumeRestoredPhoto(): NativePhoto | undefined;
@@ -93,16 +96,38 @@ async function takePhoto(camera: boolean): Promise<NativePhoto> {
   };
 }
 
-async function getLocation(): Promise<{ latitude: number; longitude: number }> {
+async function getLocation(): Promise<UserLocation> {
   const position = await Geolocation.getCurrentPosition({
     enableHighAccuracy: true,
     timeout: 20_000,
-    maximumAge: 30_000,
+    maximumAge: 0,
   });
   return {
     latitude: position.coords.latitude,
     longitude: position.coords.longitude,
+    accuracy: position.coords.accuracy,
   };
+}
+
+async function watchLocation(
+  onPosition: (position: UserLocation) => void,
+  onError: (error: unknown) => void,
+): Promise<() => void> {
+  const id = await Geolocation.watchPosition({
+    enableHighAccuracy: true,
+    timeout: 20_000,
+    maximumAge: 0,
+    interval: 3_000,
+    minimumUpdateInterval: 3_000,
+  }, (position, error) => {
+    if (error) onError(error);
+    else if (position) onPosition({
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+      accuracy: position.coords.accuracy,
+    });
+  });
+  return () => { void Geolocation.clearWatch({ id }).catch(() => {}); };
 }
 
 async function saveBackup(contents: string, filename: string): Promise<void> {
@@ -125,8 +150,10 @@ async function saveBackup(contents: string, filename: string): Promise<void> {
 
 const bridge: GraffitiNativeBridge = {
   isNative: true,
+  async getAppVersion() { return (await App.getInfo()).version; },
   takePhoto,
   getLocation,
+  watchLocation,
   saveBackup,
   consumeRestoredPhoto() {
     const photo = bridge.lastRestoredPhoto;

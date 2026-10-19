@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Field, Header, Icon, Notice } from '../components/UI';
 import { supabase } from '../services/supabase';
 import { useArchive } from '../state/Archive';
+import AppUpdatePanel from '../components/AppUpdatePanel';
 import PersonalArchivePanel from '../components/PersonalArchivePanel';
 import { colors, ui } from '../theme';
 export default function Account() {
@@ -77,7 +78,10 @@ export default function Account() {
         </Text>
         {!!error && <Notice text={error} error />}
         {isPersonal ? (
-          <PersonalArchivePanel />
+          <>
+            <PersonalArchivePanel />
+            <AppUpdatePanel />
+          </>
         ) : isDemo ? (
           <>
             <Notice text="You’re exploring the local demo. Photos, edits, saved tags, and reports stay on this device. There is no shared account or public publishing yet." />

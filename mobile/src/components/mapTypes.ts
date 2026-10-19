@@ -1,4 +1,4 @@
-import type { Point, Tag, Viewport } from '../types';
+import type { Point, Tag, UserLocation, Viewport } from '../types';
 export type MapProps = {
   tags: Tag[];
   target: Viewport;
@@ -8,5 +8,5 @@ export type MapProps = {
   satellite?: boolean;
   onPick?: (p: Point) => void;
   pick?: Point;
-  showLocation?: boolean;
+  userLocation?: UserLocation | null;
 };

@@ -32,6 +32,8 @@ Download the APK above, open it on your Android phone, and follow the installati
 
 You can take or choose photos, place tags using GPS or the map, record dates, and add photographs to a wall’s history. Saved photos and records work offline. Maps and place search need internet.
 
+For future releases, the Android app checks for updates when it starts and shows an update button on the map. You can also use **My archive → App updates → Check for updates**. Download the APK and install it over the existing app; do not uninstall first. Install version 1.0.4 once to enable these update checks.
+
 Export backups from **My archive** and keep a copy outside the app. This first release supports backup files up to 50 MB. Uninstalling or clearing app data removes the local archive.
 
 ## Development

@@ -27,8 +27,16 @@ adb install -r artifacts/graffiti-tag-personal-debug.apk
 
 ## Personal installation and backups
 
+Location access is optional. Tap the locate button on the map to request it and center on your current position. A blue dot follows your foreground GPS updates, and a blue circle shows the reported accuracy. Tap the button again to recenter after panning. The same dot appears when placing a wall, while the wall pin stays where you set it. Location updates pause when the app is in the background; browsing and manual placement work without permission.
+
 The app starts with an empty private archive. It requires Android 7 or newer and a current Android System WebView. No Expo, Google Cloud, Supabase, or Play account is needed to use the installed APK. Photo records stay in the app's local storage and image blobs in its WebView IndexedDB. Android cloud backup and device-transfer backup are disabled for this package.
 
 Use My archive > Export backup after adding photos. Save the JSON file with Android's Save file dialog, then keep another copy on a computer or storage provider you choose. Import backup adds missing tags and leaves existing tags untouched, including newer edits. This first JSON backup format has a 50 MB per-file limit; it is not an unlimited archive backup system. Exports are prepared in bounded chunks in app cache before opening the document picker, avoiding Android saved-state parcel limits. Uninstalling or clearing app data removes the archive. Install later compatible APKs as updates, using the same package and signing key.
 
 The APK bundles its interface and works independently of the development computer. Saved photographs, records and editing work offline. OpenStreetMap tiles and place lookup need internet. This package does not include Google Maps navigation or a public community archive. The Expo/Supabase community implementation remains separate under `mobile` and `supabase`.
+
+## In-app updates
+
+Starting with 1.0.4, the app checks the public GitHub latest-release API on launch and shows a map banner when a newer compatible personal release is available. My archive > App updates also provides a manual check, installed version, release notes, and download button. Downloads open the system browser; Android handles APK installation with user confirmation. No background push service or GitHub sign-in is required. Offline and failed checks leave the archive usable and can be retried.
+
+Install the new APK over the old app without uninstalling. Updates must keep application ID `app.graffititag.personal`, the same signing key, and a higher Android `versionCode`. Future releases must use a stable tag like `v1.0.5-personal`, attach `graffiti-tag-personal.apk`, and be published as the latest GitHub release. Keep `mobile/src/services/appUpdates.ts` and this package version aligned with the Android version. Never commit the signing key.

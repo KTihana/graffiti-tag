@@ -5,11 +5,42 @@ import { APIProvider, Map as GoogleMap, Marker, useMap } from '@vis.gl/react-goo
 import 'leaflet/dist/leaflet.css';
 import type { MapProps } from './mapTypes';
 import { clusters } from './clusters';
+import type { UserLocation } from '../types';
 
 const pinImages = {
   normal: Asset.fromModule(require('../../assets/markers/pin.png')).uri,
   selected: Asset.fromModule(require('../../assets/markers/pin-selected.png')).uri,
 };
+const locationDot = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="13" fill="#4285F4" fill-opacity=".18"/><circle cx="14" cy="14" r="8" fill="#4285F4" stroke="white" stroke-width="3"/></svg>')}`;
+
+function GoogleUserLocation({ position }: { position?: UserLocation | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!map || !position || position.accuracy === null || !Number.isFinite(position.accuracy)) return;
+    const circle = new google.maps.Circle({
+      map,
+      center: { lat: position.latitude, lng: position.longitude },
+      radius: Math.max(0, position.accuracy),
+      strokeColor: '#4285F4',
+      strokeOpacity: 0.3,
+      strokeWeight: 1,
+      fillColor: '#4285F4',
+      fillOpacity: 0.12,
+      clickable: false,
+    });
+    return () => circle.setMap(null);
+  }, [map, position]);
+  if (!map || !position) return null;
+  return (
+    <Marker
+      position={{ lat: position.latitude, lng: position.longitude }}
+      title="Your current location"
+      clickable={false}
+      zIndex={1000}
+      icon={{ url: locationDot, scaledSize: new google.maps.Size(28, 28), anchor: new google.maps.Point(14, 14) }}
+    />
+  );
+}
 
 function GoogleInner(props: MapProps) {
   const map = useMap(),
@@ -24,7 +55,6 @@ function GoogleInner(props: MapProps) {
       className={props.pick ? 'google-map-shell' : 'google-map-shell full'}
       style={{ position: 'absolute', inset: 0 }}
     >
-      <style>{'@media(max-width:800px){.google-map-shell.full{bottom:82px!important}}'}</style>
       <GoogleMap
         defaultCenter={{ lat: props.target.latitude, lng: props.target.longitude }}
         defaultZoom={14}
@@ -47,6 +77,7 @@ function GoogleInner(props: MapProps) {
           props.onViewport?.(v);
         }}
       >
+        <GoogleUserLocation position={props.userLocation} />
         {(map ? points : []).map((p) => (
           <Marker
             key={p.id}
@@ -90,6 +121,7 @@ function PreviewMap(props: MapProps) {
     instance = useRef<L.Map | null>(null),
     library = useRef<typeof L | null>(null),
     layer = useRef<L.LayerGroup | null>(null),
+    locationLayer = useRef<L.LayerGroup | null>(null),
     callbacks = useRef(props);
   const [ready, setReady] = useState(false),
     [view, setView] = useState(props.target);
@@ -114,6 +146,7 @@ function PreviewMap(props: MapProps) {
         })
         .addTo(m);
       layer.current = leaflet.layerGroup().addTo(m);
+      locationLayer.current = leaflet.layerGroup().addTo(m);
       m.on('moveend', () => {
         const c = m.getCenter(),
           b = m.getBounds();
@@ -140,6 +173,12 @@ function PreviewMap(props: MapProps) {
       instance.current = null;
     };
   }, []);
+  useEffect(() => {
+    if (!ready || !container.current) return;
+    const observer = new ResizeObserver(() => instance.current?.invalidateSize());
+    observer.observe(container.current);
+    return () => observer.disconnect();
+  }, [ready]);
   useEffect(() => {
     if (ready)
       instance.current?.flyTo(
@@ -186,11 +225,38 @@ function PreviewMap(props: MapProps) {
         fillOpacity: 1,
       }).addTo(group);
   }, [props.tags, props.selectedId, props.pick, view, ready]);
+  useEffect(() => {
+    const l = library.current, group = locationLayer.current, position = props.userLocation;
+    if (!ready || !l || !group) return;
+    group.clearLayers();
+    if (!position) return;
+    const coordinates: L.LatLngExpression = [position.latitude, position.longitude];
+    if (position.accuracy !== null && Number.isFinite(position.accuracy)) {
+      l.circle(coordinates, {
+        radius: Math.max(0, position.accuracy),
+        color: '#4285F4',
+        weight: 1,
+        opacity: 0.3,
+        fillColor: '#4285F4',
+        fillOpacity: 0.12,
+        interactive: false,
+        className: 'user-location-accuracy',
+      }).addTo(group);
+    }
+    l.marker(coordinates, {
+      icon: l.icon({ iconUrl: locationDot, iconSize: [28, 28], iconAnchor: [14, 14], className: 'user-location-dot' }),
+      title: 'Your current location',
+      alt: 'Your current location',
+      interactive: false,
+      keyboard: false,
+      zIndexOffset: 1000,
+    }).addTo(group);
+  }, [props.userLocation, ready]);
   return (
     <>
       <style>
         {
-          '.leaflet-container{background:#e9eddf;font-family:Inter_400Regular,sans-serif}.leaflet-control-attribution{font-size:9px!important}.leaflet-marker-icon:focus{outline:3px solid #73953b;outline-offset:3px}.archive-full-map .leaflet-control-attribution{margin-bottom:82px!important}.preview-credit{position:absolute;bottom:82px;left:7px;font:10px sans-serif;color:#58624d;background:#ffffffdc;padding:3px;pointer-events:none;z-index:400}.preview-credit.editor{bottom:3px}@media(min-width:801px){.archive-full-map .leaflet-control-attribution{margin-bottom:0!important}.preview-credit{bottom:3px}}'
+          '.leaflet-container{background:#e9eddf;font-family:Inter_400Regular,sans-serif}.leaflet-control-attribution{font-size:9px!important}.leaflet-marker-icon:focus{outline:3px solid #73953b;outline-offset:3px}.preview-credit{position:absolute;bottom:3px;left:7px;font:10px sans-serif;color:#58624d;background:#ffffffdc;padding:3px;pointer-events:none;z-index:400}.preview-credit.editor{bottom:3px}@media(min-width:801px){.archive-full-map .leaflet-control-attribution{margin-bottom:0!important}.preview-credit{bottom:3px}}'
         }
       </style>
       <div

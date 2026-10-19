@@ -38,7 +38,7 @@ export default function ArchiveMap(props: MapProps) {
       style={StyleSheet.absoluteFill}
       initialRegion={props.target}
       mapType={props.satellite ? 'hybrid' : 'standard'}
-      showsUserLocation={props.showLocation}
+      showsUserLocation={!!props.userLocation}
       showsMyLocationButton={false}
       toolbarEnabled={false}
       showsCompass={false}

@@ -2,6 +2,7 @@ export type Precision = 'exact' | 'year' | 'approximate' | 'unknown';
 export type Condition = 'present' | 'faded' | 'covered' | 'gone';
 export type ArtType = 'Piece' | 'Mural' | 'Lettering' | 'Stencil' | 'Other';
 export type Point = { latitude: number; longitude: number };
+export type UserLocation = Point & { accuracy: number | null };
 export type Viewport = Point & { latitudeDelta: number; longitudeDelta: number };
 export type Artwork = { id: string; title: string; artist: string; kind: ArtType };
 export type Photo = {

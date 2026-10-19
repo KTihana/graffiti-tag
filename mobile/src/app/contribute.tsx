@@ -3,19 +3,21 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } fro
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
-import * as Location from 'expo-location';
 import * as Crypto from 'expo-crypto';
 import ArchiveMap from '../components/ArchiveMap';
+import UserLocationStatus from '../components/UserLocationStatus';
 import { ArtImage, Button, Chip, Field, Header, Icon, Notice } from '../components/UI';
 import { distanceMeters, validateContribution } from '../domain';
 import { getNativeBridge, type NativePhoto } from '../services/nativeBridge';
 import { contribute, getTag, listTags } from '../services/repository';
 import { useArchive } from '../state/Archive';
+import { useUserLocation } from '../state/UserLocation';
 import { colors, ui } from '../theme';
 import { INITIAL_VIEW, type Contribution, type Tag } from '../types';
 export default function Contribute() {
   const params = useLocalSearchParams<{ tagId?: string; lat?: string; lng?: string }>(),
     { isDemo, isPersonal, session, alias, refresh } = useArchive();
+  const { position, locating, locate: findLocation, error: locationError, dismissError } = useUserLocation();
   const [c, setC] = useState<Contribution>({
     tagId: params.tagId,
     title: '',
@@ -179,24 +181,11 @@ export default function Contribute() {
     }
   };
   const locate = async () => {
-    try {
-      const native = getNativeBridge();
-      if (!native) {
-        const p = await Location.requestForegroundPermissionsAsync();
-        if (!p.granted)
-          throw new Error('You can place the pin manually without location permission.');
-      }
-      const location = native
-        ? { coords: await native.getLocation() }
-        : await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-      patch({
-        point: { latitude: location.coords.latitude, longitude: location.coords.longitude },
-      });
-      setTarget({ ...location.coords, latitudeDelta: 0.006, longitudeDelta: 0.006 });
-      setConfirmedLocation(false);
-    } catch (e) {
-      setError((e as Error).message);
-    }
+    const next = await findLocation();
+    if (!next) return;
+    patch({ point: { latitude: next.latitude, longitude: next.longitude } });
+    setTarget({ ...next, latitudeDelta: 0.003, longitudeDelta: 0.003 });
+    setConfirmedLocation(false);
   };
   const selectWall = (t: Tag) => {
     setExisting(t);
@@ -351,6 +340,7 @@ export default function Contribute() {
                     if (t) selectWall(t);
                   }}
                   pick={c.point}
+                  userLocation={position}
                   onPick={
                     c.tagId
                       ? undefined
@@ -361,6 +351,7 @@ export default function Contribute() {
                   }
                 />
               </View>
+              <UserLocationStatus position={position} />
               <Text style={ui.muted}>
                 {c.point.latitude.toFixed(5)}, {c.point.longitude.toFixed(5)}
               </Text>
@@ -370,7 +361,14 @@ export default function Contribute() {
                   secondary
                   icon="locate-outline"
                   onPress={locate}
+                  busy={locating}
                 />
+              )}
+              <Text style={ui.muted}>Location access is optional. You can place the pin manually.</Text>
+              {!!locationError && (
+                <Pressable accessibilityRole="button" accessibilityLabel="Dismiss location message" onPress={dismissError}>
+                  <Notice text={locationError} error />
+                </Pressable>
               )}
               {existing ? (
                 <View style={[ui.card, { gap: 12 }]}>
@@ -429,6 +427,7 @@ export default function Contribute() {
               <Pressable
                 accessibilityRole="checkbox"
                 accessibilityState={{ checked: confirmedLocation }}
+                aria-checked={confirmedLocation}
                 accessibilityLabel="Confirm wall location"
                 onPress={() => setConfirmedLocation((v) => !v)}
                 style={ui.row}

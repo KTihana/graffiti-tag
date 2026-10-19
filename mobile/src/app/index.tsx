@@ -1,5 +1,5 @@
-import { getNativeBridge } from '../services/nativeBridge';
-import React, { useEffect, useMemo, useState } from 'react';
+import { AppUpdateBanner } from '../components/AppUpdatePanel';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -15,21 +15,25 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Location from 'expo-location';
 import ArchiveMap from '../components/ArchiveMap';
+import UserLocationStatus from '../components/UserLocationStatus';
 import { ArtImage, Button, Chip, Field, Icon, IconButton, Notice } from '../components/UI';
 import { orderedPhotos, dateLabel, matches } from '../domain';
 import { listTags } from '../services/repository';
 import { findPlace } from '../services/geocode';
 import { useArchive } from '../state/Archive';
+import { useUserLocation } from '../state/UserLocation';
 import { colors, fonts, ui } from '../theme';
 import { INITIAL_VIEW, type Tag } from '../types';
 
 export default function Explore() {
-  const { width } = useWindowDimensions(),
-    wide = width > 800,
+  const { width, height } = useWindowDimensions(),
+    sidePanel = width >= 600 && (width > height || width > 800),
+    scrollPanel = sidePanel || height < 700,
+    panelWidth = width > 1000 ? 370 : 320,
     insets = useSafeAreaInsets();
   const { isDemo, isPersonal, version } = useArchive();
+  const { position, locating, locate: findLocation, error: locationError, dismissError } = useUserLocation();
   const [tags, setTags] = useState<Tag[]>([]),
     [target, setTarget] = useState(INITIAL_VIEW),
     [viewport, setViewport] = useState(INITIAL_VIEW);
@@ -39,11 +43,13 @@ export default function Explore() {
     [year, setYear] = useState(''),
     [filterOpen, setFilterOpen] = useState(false),
     [selected, setSelected] = useState<string | undefined>();
+  const searchRequest = useRef(0);
+  const searchPending = useRef(false);
+  const [searchError, setSearchError] = useState('');
+  const [searching, setSearching] = useState(false);
   const [loading, setLoading] = useState(true),
     [error, setError] = useState(''),
-    [satellite, setSatellite] = useState(false),
-    [locating, setLocating] = useState(false),
-    [showLocation, setShowLocation] = useState(false);
+    [satellite, setSatellite] = useState(false);
   useEffect(() => {
     let active = true;
     const timer = setTimeout(() => {
@@ -76,42 +82,36 @@ export default function Explore() {
         (kind === 'All' || selection.artworks.find((a) => a.id === p.artworkId)?.kind === kind),
     );
   const locate = async () => {
-    setLocating(true);
-    try {
-      const native = getNativeBridge();
-      const permission = native
-        ? { granted: true }
-        : await Location.requestForegroundPermissionsAsync();
-      if (!permission.granted)
-        throw new Error(
-          'Location permission is off. You can still explore and place tags manually.',
-        );
-      const position = native
-        ? { coords: await native.getLocation() }
-        : await Location.getCurrentPositionAsync({
-            accuracy: Location.Accuracy.Balanced,
-          });
-      setShowLocation(true);
-      setTarget({ ...position.coords, latitudeDelta: 0.025, longitudeDelta: 0.025 });
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setLocating(false);
-    }
+    const next = await findLocation();
+    if (next) setTarget({ ...next, latitudeDelta: 0.003, longitudeDelta: 0.003 });
+  };
+  useEffect(() => () => { searchRequest.current += 1; }, []);
+  const changeQuery = (value: string) => {
+    searchRequest.current += 1;
+    searchPending.current = false;
+    setSearching(false);
+    setSearchError('');
+    setQuery(value);
   };
   const searchPlace = async () => {
-    if (!query.trim()) return;
-    setLoading(true);
+    if (!query.trim() || searchPending.current) return;
+    const request = ++searchRequest.current;
+    searchPending.current = true;
+    setSearching(true);
+    setSearchError('');
     try {
-      const p = await findPlace(query);
+      const p = await findPlace(query.trim());
+      if (request !== searchRequest.current) return;
       setTarget({ ...p, latitudeDelta: 0.05, longitudeDelta: 0.05 });
       setQuery('');
       setSelected(undefined);
-      setError('');
     } catch (e) {
-      setError((e as Error).message);
+      if (request === searchRequest.current) setSearchError((e as Error).message);
     } finally {
-      setLoading(false);
+      if (request === searchRequest.current) {
+        searchPending.current = false;
+        setSearching(false);
+      }
     }
   };
   const addTag = () =>
@@ -119,8 +119,224 @@ export default function Explore() {
       pathname: '/contribute',
       params: { lat: viewport.latitude, lng: viewport.longitude },
     });
+  const topPanel = (
+    <View
+      pointerEvents="box-none"
+      style={s.top}
+    >
+      <View style={s.brandRow}>
+        <View style={s.brandIdentity}>
+          <Image
+            source={require('../../assets/brand-pin.png')}
+            style={s.brandLogo}
+            accessibilityLabel="Graffiti Tag logo"
+            resizeMode="contain"
+          />
+          <View style={{ flexShrink: 1 }}>
+            <Text
+              style={s.wordmark}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
+            >
+              graffiti tag<Text style={{ color: colors.green }}>.</Text>
+            </Text>
+            <Text style={s.tagline}>THE STREETS REMEMBER</Text>
+          </View>
+        </View>
+        <IconButton
+          icon="person-outline"
+          label="Your account"
+          onPress={() => router.push('/account')}
+        />
+      </View>
+      <View style={[s.search, searchFocused && s.searchFocused]}>
+        <Icon name="search" size={19} color={colors.muted} />
+        <TextInput
+          accessibilityLabel="Search archive or city"
+          style={s.searchInput}
+          placeholder="Search a city, artist, or wall"
+          placeholderTextColor={colors.muted}
+          value={query}
+          onChangeText={changeQuery}
+          onSubmitEditing={searchPlace}
+          onFocus={() => setSearchFocused(true)}
+          onBlur={() => setSearchFocused(false)}
+          returnKeyType="search"
+        />
+        {query ? (
+          <Pressable accessibilityLabel="Clear search" onPress={() => changeQuery('')}>
+            <Icon name="close-circle" size={19} />
+          </Pressable>
+        ) : (
+          <View style={s.searchDot} />
+        )}
+      </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: 7 }}
+      >
+        <Chip
+          text="All tags"
+          active={kind === 'All' && !year}
+          onPress={() => {
+            setKind('All');
+            setYear('');
+          }}
+          icon="apps-outline"
+        />
+        <Chip
+          text="Pieces"
+          active={kind === 'Piece'}
+          onPress={() => setKind(kind === 'Piece' ? 'All' : 'Piece')}
+        />
+        <Chip
+          text="Murals"
+          active={kind === 'Mural'}
+          onPress={() => setKind(kind === 'Mural' ? 'All' : 'Mural')}
+        />
+        <Chip
+          text={year || 'Filters'}
+          active={!!year || ['Lettering', 'Stencil', 'Other'].includes(kind)}
+          onPress={() => setFilterOpen(true)}
+          icon="options-outline"
+        />
+      </ScrollView>
+      <AppUpdateBanner />
+      <UserLocationStatus position={position} />
+      {tags.length >= 250 && (
+        <Notice text="Showing up to 250 walls. Zoom in to explore a smaller area." />
+      )}
+      {query.length > 1 && (
+        <Pressable style={s.searchResult} onPress={searchPlace} disabled={searching}>
+          <Icon name="location-outline" size={18} />
+          <Text style={[ui.body, { flex: 1 }]}>{searching ? `Finding “${query}”…` : `Find “${query}” on the map`}</Text>
+          <Icon name="arrow-forward" size={16} />
+        </Pressable>
+      )}
+      {!!searchError && (
+        <Pressable accessibilityLabel="Dismiss search error" onPress={() => setSearchError('')}>
+          <Notice text={searchError} error />
+        </Pressable>
+      )}
+      {!!error && (
+        <Pressable onPress={() => setError('')}>
+          <Notice text={error} error />
+        </Pressable>
+      )}
+      {!!locationError && (
+          <Pressable accessibilityRole="button" accessibilityLabel="Dismiss location message" onPress={dismissError}>
+          <Notice text={locationError} error />
+        </Pressable>
+      )}
+    </View>
+  );
+  const bottomPanel = (
+    <View
+      pointerEvents="box-none"
+      style={s.bottom}
+    >
+      <View
+        style={{
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 12,
+          flexWrap: 'wrap', gap: 8,
+        }}
+      >
+        <View style={s.demoPill}>
+          <View
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: 3,
+              backgroundColor: isPersonal ? colors.green : isDemo ? '#AA812F' : colors.green,
+            }}
+          />
+          <Text style={{ fontFamily: fonts.medium, fontSize: 10, color: colors.ink }}>
+            {isPersonal
+              ? 'MY PRIVATE ARCHIVE'
+              : isDemo
+                ? 'LOCAL DEMO · NOT PUBLIC'
+                : 'THE COMMUNITY ARCHIVE'}
+          </Text>
+        </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Add tag"
+          style={s.addButton}
+          onPress={addTag}
+        >
+          <Icon name="add" size={18} />
+          <Text style={{ fontFamily: fonts.bold, fontSize: 13 }}>Add tag</Text>
+        </Pressable>
+      </View>
+      <View testID="wall-discovery" style={s.discovery}>
+        <View style={[ui.row, { justifyContent: 'space-between', marginBottom: 12 }]}>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={ui.label}>
+              {year ? `PHOTOGRAPHED IN ${year}` : 'OUT ON THE STREETS'}
+            </Text>
+            <Text style={[ui.subtitle, { fontSize: 23, marginTop: 3 }]}>
+              Every wall has a story.
+            </Text>
+          </View>
+          {loading || searching ? (
+            <ActivityIndicator color={colors.green} />
+          ) : (
+            <View style={s.count}>
+              <Text style={{ fontFamily: fonts.bold, fontSize: 12 }}>{visible.length}</Text>
+            </View>
+          )}
+        </View>
+        {selection ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Open ${selection.title}`}
+            onPress={() => router.push(`/tag/${selection.id}`)}
+            style={s.preview}
+          >
+            <ArtImage uri={photo?.uri} style={s.previewImage} />
+            <View style={{ flex: 1, minWidth: 0, gap: 5 }}>
+              <Text
+                numberOfLines={1}
+                style={{ fontFamily: fonts.bold, fontSize: 15, color: colors.ink }}
+              >
+                {selection.title}
+              </Text>
+              <Text numberOfLines={1} style={ui.muted}>
+                {selection.artworks[0]?.artist || 'Unknown artist'}
+              </Text>
+              <View style={[ui.row, { gap: 5 }]}>
+                <Icon name="time-outline" size={13} color={colors.green} />
+                <Text style={[ui.muted, { color: colors.green }]}>
+                  {selection.photos.length} {selection.photos.length === 1 ? 'photo' : 'photos'}
+                  {photo ? ` · ${dateLabel(photo)}` : ''}
+                </Text>
+              </View>
+            </View>
+            <Icon name="arrow-forward" size={18} />
+          </Pressable>
+        ) : (
+          <View style={{ paddingVertical: 8, gap: 7 }}>
+            <Text style={ui.body}>
+              {loading ? 'Finding stories…' : 'There are stories here waiting to be saved.'}
+            </Text>
+            <Text style={ui.muted}>
+              {kind !== 'All' || year || query
+                ? 'Try another filter, or add a photograph.'
+                : 'Be the first to document a wall in this area.'}
+            </Text>
+          </View>
+        )}
+      </View>
+    </View>
+  );
   return (
     <View style={ui.screen}>
+      <View style={[StyleSheet.absoluteFill, sidePanel ? { left: insets.left + panelWidth + 24 } : { bottom: insets.bottom + 82 }]} >
       <ArchiveMap
         tags={visible}
         target={target}
@@ -128,111 +344,32 @@ export default function Explore() {
         onSelect={setSelected}
         onViewport={setViewport}
         satellite={satellite}
-        showLocation={showLocation}
+        userLocation={position}
       />
-      <View
-        pointerEvents="box-none"
-        style={[
-          s.top,
-          { top: insets.top + 18, width: wide ? 370 : undefined, right: wide ? undefined : 18 },
-        ]}
-      >
-        <View style={s.brandRow}>
-          <View style={s.brandIdentity}>
-            <Image
-              source={require('../../assets/brand-pin.png')}
-              style={s.brandLogo}
-              accessibilityLabel="Graffiti Tag logo"
-              resizeMode="contain"
-            />
-            <View style={{ flexShrink: 1 }}>
-              <Text
-                style={s.wordmark}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.8}
-              >
-                graffiti tag<Text style={{ color: colors.green }}>.</Text>
-              </Text>
-              <Text style={s.tagline}>THE STREETS REMEMBER</Text>
-            </View>
-          </View>
-          <IconButton
-            icon="person-outline"
-            label="Your account"
-            onPress={() => router.push('/account')}
-          />
-        </View>
-        <View style={[s.search, searchFocused && s.searchFocused]}>
-          <Icon name="search" size={19} color={colors.muted} />
-          <TextInput
-            accessibilityLabel="Search archive or city"
-            style={s.searchInput}
-            placeholder="Search a city, artist, or wall"
-            placeholderTextColor={colors.muted}
-            value={query}
-            onChangeText={setQuery}
-            onSubmitEditing={searchPlace}
-            onFocus={() => setSearchFocused(true)}
-            onBlur={() => setSearchFocused(false)}
-            returnKeyType="search"
-          />
-          {query ? (
-            <Pressable accessibilityLabel="Clear search" onPress={() => setQuery('')}>
-              <Icon name="close-circle" size={19} />
-            </Pressable>
-          ) : (
-            <View style={s.searchDot} />
-          )}
-        </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 7 }}
-        >
-          <Chip
-            text="All tags"
-            active={kind === 'All' && !year}
-            onPress={() => {
-              setKind('All');
-              setYear('');
-            }}
-            icon="apps-outline"
-          />
-          <Chip
-            text="Pieces"
-            active={kind === 'Piece'}
-            onPress={() => setKind(kind === 'Piece' ? 'All' : 'Piece')}
-          />
-          <Chip
-            text="Murals"
-            active={kind === 'Mural'}
-            onPress={() => setKind(kind === 'Mural' ? 'All' : 'Mural')}
-          />
-          <Chip
-            text={year || 'Filters'}
-            active={!!year || ['Lettering', 'Stencil', 'Other'].includes(kind)}
-            onPress={() => setFilterOpen(true)}
-            icon="options-outline"
-          />
-        </ScrollView>
-        {tags.length >= 250 && (
-          <Notice text="Showing up to 250 walls. Zoom in to explore a smaller area." />
-        )}
-        {query.length > 1 && (
-          <Pressable style={s.searchResult} onPress={searchPlace}>
-            <Icon name="location-outline" size={18} />
-            <Text style={[ui.body, { flex: 1 }]}>Find “{query}” on the map</Text>
-            <Icon name="arrow-forward" size={16} />
-          </Pressable>
-        )}
-        {!!error && (
-          <Pressable onPress={() => setError('')}>
-            <Notice text={error} error />
-          </Pressable>
-        )}
       </View>
-      <View style={[s.rightTools, { top: insets.top + (wide ? 24 : 190), right: 18 }]}>
+      {scrollPanel ? (
+        <ScrollView
+          testID="explore-panel"
+          style={[s.panel, { top: insets.top + 12, bottom: insets.bottom + 92,
+            left: insets.left + 12, width: sidePanel ? panelWidth : undefined,
+            right: sidePanel ? undefined : insets.right + 72 }]}
+          contentContainerStyle={s.panelContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          {topPanel}
+          {bottomPanel}
+        </ScrollView>
+      ) : (
+        <View pointerEvents="box-none" style={[s.panel, {
+          top: insets.top + 18, bottom: insets.bottom + 94,
+          left: insets.left + 18, right: insets.right + 18,
+          justifyContent: 'space-between', gap: 20,
+        }]}>
+          {topPanel}
+          {bottomPanel}
+        </View>
+      )}
+      <View style={[s.rightTools, { top: insets.top + (scrollPanel ? 12 : 220), right: insets.right + 12 }]}>
         {(!Platform.OS.includes('web') || process.env.EXPO_PUBLIC_GOOGLE_MAPS_WEB_API_KEY) && (
           <IconButton
             icon={satellite ? 'map-outline' : 'layers-outline'}
@@ -244,6 +381,8 @@ export default function Explore() {
           icon={locating ? 'hourglass-outline' : 'locate-outline'}
           label="Find my location"
           onPress={locate}
+          disabled={locating}
+          color={position ? '#4285F4' : undefined}
         />
         <IconButton
           icon="add"
@@ -269,114 +408,10 @@ export default function Explore() {
         />
       </View>
       <View
-        pointerEvents="box-none"
-        style={[
-          s.bottom,
-          wide
-            ? { left: 24, width: 370, bottom: 32 }
-            : { left: 16, right: 16, bottom: 94 + insets.bottom },
-        ]}
-      >
-        <View
-          style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: 12,
-          }}
-        >
-          <View style={s.demoPill}>
-            <View
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: 3,
-                backgroundColor: isPersonal ? colors.green : isDemo ? '#AA812F' : colors.green,
-              }}
-            />
-            <Text style={{ fontFamily: fonts.medium, fontSize: 10, color: colors.ink }}>
-              {isPersonal
-                ? 'MY PRIVATE ARCHIVE'
-                : isDemo
-                  ? 'LOCAL DEMO · NOT PUBLIC'
-                  : 'THE COMMUNITY ARCHIVE'}
-            </Text>
-          </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Add tag"
-            style={s.addButton}
-            onPress={addTag}
-          >
-            <Icon name="add" size={18} />
-            <Text style={{ fontFamily: fonts.bold, fontSize: 13 }}>Add tag</Text>
-          </Pressable>
-        </View>
-        <View style={s.discovery}>
-          <View style={[ui.row, { justifyContent: 'space-between', marginBottom: 12 }]}>
-            <View>
-              <Text style={ui.label}>
-                {year ? `PHOTOGRAPHED IN ${year}` : 'OUT ON THE STREETS'}
-              </Text>
-              <Text style={[ui.subtitle, { fontSize: 23, marginTop: 3 }]}>
-                Every wall has a story.
-              </Text>
-            </View>
-            {loading ? (
-              <ActivityIndicator color={colors.green} />
-            ) : (
-              <View style={s.count}>
-                <Text style={{ fontFamily: fonts.bold, fontSize: 12 }}>{visible.length}</Text>
-              </View>
-            )}
-          </View>
-          {selection ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`Open ${selection.title}`}
-              onPress={() => router.push(`/tag/${selection.id}`)}
-              style={s.preview}
-            >
-              <ArtImage uri={photo?.uri} style={s.previewImage} />
-              <View style={{ flex: 1, gap: 5 }}>
-                <Text
-                  numberOfLines={1}
-                  style={{ fontFamily: fonts.bold, fontSize: 15, color: colors.ink }}
-                >
-                  {selection.title}
-                </Text>
-                <Text numberOfLines={1} style={ui.muted}>
-                  {selection.artworks[0]?.artist || 'Unknown artist'}
-                </Text>
-                <View style={[ui.row, { gap: 5 }]}>
-                  <Icon name="time-outline" size={13} color={colors.green} />
-                  <Text style={[ui.muted, { color: colors.green }]}>
-                    {selection.photos.length} {selection.photos.length === 1 ? 'photo' : 'photos'}
-                    {photo ? ` · ${dateLabel(photo)}` : ''}
-                  </Text>
-                </View>
-              </View>
-              <Icon name="arrow-forward" size={18} />
-            </Pressable>
-          ) : (
-            <View style={{ paddingVertical: 8, gap: 7 }}>
-              <Text style={ui.body}>
-                {loading ? 'Finding stories…' : 'There are stories here waiting to be saved.'}
-              </Text>
-              <Text style={ui.muted}>
-                {kind !== 'All' || year || query
-                  ? 'Try another filter, or add a photograph.'
-                  : 'Be the first to document a wall in this area.'}
-              </Text>
-            </View>
-          )}
-        </View>
-      </View>
-      <View
         style={[
           s.navigation,
-          wide
-            ? { left: '50%', marginLeft: -180, width: 360, bottom: 30, borderRadius: 24 }
+          sidePanel
+            ? { left: insets.left + 12, width: panelWidth, bottom: insets.bottom + 8, borderRadius: 24 }
             : { left: 0, right: 0, bottom: 0, paddingBottom: insets.bottom + 14 },
         ]}
       >
@@ -387,7 +422,7 @@ export default function Explore() {
           onPress={() => {
             setKind('All');
             setYear('');
-            setQuery('');
+            changeQuery('');
           }}
         >
           <View style={s.activeNav}>
@@ -418,8 +453,8 @@ export default function Explore() {
         animationType="fade"
         onRequestClose={() => setFilterOpen(false)}
       >
-        <View style={s.scrim}>
-          <View style={[ui.card, { width: '100%', maxWidth: 430, gap: 18 }]}>
+        <View style={[s.scrim, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 12, paddingLeft: insets.left + 20, paddingRight: insets.right + 20 }]}>
+          <ScrollView style={{ width: '100%', maxWidth: 430, flexGrow: 0 }} contentContainerStyle={[ui.card, { gap: 18 }]} keyboardShouldPersistTaps="handled">
             <View style={[ui.row, { justifyContent: 'space-between' }]}>
               <Text style={ui.subtitle}>Explore the archive</Text>
               <IconButton icon="close" label="Close filters" onPress={() => setFilterOpen(false)} />
@@ -448,14 +483,16 @@ export default function Explore() {
                 setFilterOpen(false);
               }}
             />
-          </View>
+          </ScrollView>
         </View>
       </Modal>
     </View>
   );
 }
 const s = StyleSheet.create({
-  top: { position: 'absolute', left: 18, gap: 11 },
+  panel: { position: 'absolute' },
+  panelContent: { flexGrow: 1, justifyContent: 'space-between', gap: 20, paddingBottom: 2 },
+  top: { gap: 11 },
   brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -505,7 +542,7 @@ const s = StyleSheet.create({
     gap: 8,
   },
   rightTools: { position: 'absolute', gap: 8 },
-  bottom: { position: 'absolute' },
+  bottom: { gap: 0 },
   demoPill: {
     flexDirection: 'row',
     alignItems: 'center',
