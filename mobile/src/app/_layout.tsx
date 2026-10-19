@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
-import { ActivityIndicator, Platform, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Platform } from 'react-native';
+import { Asset } from 'expo-asset';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -10,7 +11,9 @@ import { SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk/700Bold';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ArchiveProvider } from '../state/Archive';
 import { installWebInputFocusStyle } from '../components/webFocus';
+import LoadingScreen, { loadingArtwork } from '../components/LoadingScreen';
 export default function Layout() {
+  const [artworkReady, setArtworkReady] = useState(false);
   const [loaded, error] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
@@ -20,18 +23,25 @@ export default function Layout() {
   useEffect(() => {
     if (Platform.OS === 'web') installWebInputFocusStyle();
   }, []);
-  if (!loaded && !error)
+  useEffect(() => {
+    let active = true;
+    Asset.loadAsync(loadingArtwork)
+      .catch(() => {})
+      .finally(() => active && setArtworkReady(true));
+    return () => { active = false; };
+  }, []);
+  const ready = (loaded || !!error) && artworkReady;
+  useEffect(() => {
+    // Personal exports show the same design before the JS bundle even starts.
+    // Remove that static cover only when the app can render its first screen.
+    if (ready && Platform.OS === 'web') document.getElementById('graffiti-launch-screen')?.remove();
+  }, [ready]);
+  if (!ready)
     return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: '#F9FAF5',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <ActivityIndicator color="#426349" />
-      </View>
+      <>
+        <StatusBar style="light" />
+        <LoadingScreen fontReady={loaded} />
+      </>
     );
   return (
     <SafeAreaProvider>

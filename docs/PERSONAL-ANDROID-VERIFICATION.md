@@ -35,3 +35,11 @@ A physical Android phone has not been tested. Android device-specific camera beh
 Personal Android 1.0.1, version code 2. SHA-256: `7f28cb273006f848435547cf5419cb102dc8961f1322ad323ac02724def57cc2`.
 
 Removed browser focus rings from clicked buttons, checkboxes and map markers, and removed chip borders. Selected options keep their dark fill. Keyboard focus uses a brightness change. Browser checks confirmed border-free selected chips, outline-free checked controls, working location confirmation, and visible keyboard focus. Expo lint, TypeScript, the APK build and signature verification pass. Native behavior was not retested in an emulator for this appearance-only update.
+
+## 19 October 2026: loading screen update
+
+Personal Android 1.0.2, version code 3. SHA-256: `f621631371d3b0baffdc6afb2d607c4231296fa57e0a75839be0568c479b93ef`.
+
+Added the approved dark concrete/sticker design with a street-map overlay, the actual bundled Space Grotesk Bold title, and an animated indeterminate loading bar. Foreground artwork scales to fit short screens, landscape and tablets; the background alone crops. The personal export includes this design in the initial HTML response, before JavaScript, and precaches its artwork and font for offline startup. Reduced-motion preferences disable the loading animation. The Android system splash uses a separate pin with proportional transparent padding inside its icon mask.
+
+Validation: Expo lint, TypeScript, all 24 unit/database tests, both personal browser tests (archive/backup/offline editing and pre-JavaScript loading), APK build and signature verification. The loading test checks 320×568, 412×915, 915×412 and 800×1280 layouts, loaded artwork, reduced motion and transition into the app. Installed over 1.0.1 on the API 36 emulator without clearing data; saved archive/bookmark storage remained unchanged and the existing wall was visible. Physical-phone verification remains pending.

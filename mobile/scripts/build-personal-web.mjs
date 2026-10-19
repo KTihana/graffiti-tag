@@ -4,6 +4,7 @@ import { rmSync } from 'node:fs';
 import { copyFile, readFile, readdir, stat, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { installLoadingScreen } from './install-loading-screen.mjs';
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const outputDir = path.join(projectRoot, 'dist-personal');
@@ -136,7 +137,7 @@ async function main() {
     display: 'standalone',
     orientation: 'portrait-primary',
     theme_color: '#DFFF65',
-    background_color: '#F7F8F1',
+    background_color: '#20251F',
     icons,
   };
   await writeFile(path.join(outputDir, 'manifest.webmanifest'), `${JSON.stringify(manifest, null, 2)}\n`);
@@ -157,6 +158,7 @@ async function main() {
   const registration = `<script>if ('serviceWorker' in navigator && location.protocol !== 'file:') { window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch((error) => console.warn('Offline support could not start:', error)); }); }</script>`;
   if (html.includes('</body>')) html = html.replace('</body>', `  ${registration}\n</body>`);
   else throw new Error(`Could not find </body> in ${indexPath}`);
+  html = await installLoadingScreen(html, outputDir, projectRoot);
   await writeFile(indexPath, html);
 
   const allFiles = await listFiles(outputDir);

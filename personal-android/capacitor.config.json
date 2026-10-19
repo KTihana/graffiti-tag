@@ -2,6 +2,7 @@
   "appId": "app.graffititag.personal",
   "appName": "Graffiti Tag Personal",
   "webDir": "www",
+  "backgroundColor": "#20251F",
   "plugins": {
     "App": {
       "disableBackButtonHandler": true
