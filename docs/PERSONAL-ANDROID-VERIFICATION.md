@@ -29,3 +29,9 @@ The release includes the later logo and marker artwork update. The application b
 ## Limits
 
 A physical Android phone has not been tested. Android device-specific camera behavior and older WebView versions may differ. The first backup format has a 50 MB per-file limit. There is no automatic cloud sync. Uninstalling or clearing app data removes the local archive. Basemap tiles and place search need internet; no offline map download feature is included. Future community Google Maps/Supabase workflows are separate and have not been deployed.
+
+## 19 October 2026: selection appearance update
+
+Personal Android 1.0.1, version code 2. SHA-256: `7f28cb273006f848435547cf5419cb102dc8961f1322ad323ac02724def57cc2`.
+
+Removed browser focus rings from clicked buttons, checkboxes and map markers, and removed chip borders. Selected options keep their dark fill. Keyboard focus uses a brightness change. Browser checks confirmed border-free selected chips, outline-free checked controls, working location confirmation, and visible keyboard focus. Expo lint, TypeScript, the APK build and signature verification pass. Native behavior was not retested in an emulator for this appearance-only update.

@@ -108,7 +108,7 @@ export function Chip({
       accessibilityLabel={text}
       accessibilityState={{ selected: !!active }}
       onPress={onPress}
-      style={[s.chip, active && { backgroundColor: colors.ink, borderColor: colors.ink }]}
+      style={[s.chip, active && { backgroundColor: colors.ink }]}
     >
       {icon && <Icon name={icon} size={15} color={active ? colors.lime : colors.muted} />}
       <Text
@@ -285,8 +285,6 @@ const s = StyleSheet.create({
     borderRadius: 24,
     paddingHorizontal: 16,
     paddingVertical: 11,
-    borderWidth: 1,
-    borderColor: colors.line,
     backgroundColor: colors.white,
   },
   inputFocused: { borderWidth: 2, borderColor: colors.green },
