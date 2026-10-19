@@ -1,0 +1,16 @@
+{
+  "appId": "app.graffititag.personal",
+  "appName": "Graffiti Tag Personal",
+  "webDir": "www",
+  "plugins": {
+    "App": {
+      "disableBackButtonHandler": true
+    },
+    "StatusBar": {
+      "style": "LIGHT",
+      "overlaysWebView": true,
+      "backgroundColor": "#F9FAF5"
+    }
+  },
+  "loggingBehavior": "none"
+}

@@ -1,0 +1,30 @@
+{
+  "name": "graffiti-tag-personal-android",
+  "version": "1.0.0",
+  "description": "Local Capacitor shell for the Graffiti Tag personal Android archive",
+  "main": "index.js",
+  "scripts": {
+    "copy:web": "node scripts/copy-web.mjs",
+    "sync": "node scripts/copy-web.mjs && npx cap sync android",
+    "build:apk": "node scripts/build-apk.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@capacitor/android": "8.5.3",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/camera": "8.2.6",
+    "@capacitor/core": "8.5.3",
+    "@capacitor/filesystem": "8.1.5",
+    "@capacitor/geolocation": "8.2.4",
+    "@capacitor/share": "8.0.3",
+    "@capacitor/status-bar": "8.0.4"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.5.3",
+    "esbuild": "0.28.2"
+  },
+  "private": true
+}

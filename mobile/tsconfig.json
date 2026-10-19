@@ -1,0 +1,10 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "allowJs": false,
+    "types": ["react", "react-native", "node", "google.maps"]
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx", "tests/**/*.ts", "*.ts"],
+  "exclude": ["node_modules", "dist", "dist-*", "android", "ios"]
+}

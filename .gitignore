@@ -1,0 +1,26 @@
+node_modules/
+.expo/
+dist/
+.env
+.env.*
+!.env.example
+test-results/
+playwright-report/
+.DS_Store
+*.tsbuildinfo
+
+dist-*/
+
+# Local design work, QA outputs, and private hosting checkout
+/output/
+/design/
+/personal-site/
+/mobile/artifacts/
+/personal-android/artifacts/
+
+# Signing material and machine-specific build state
+*.keystore
+*.jks
+*.p12
+*.pem
+local.properties
