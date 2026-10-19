@@ -18,6 +18,14 @@ The goal is a shared archive where anyone can contribute photos and information,
 
 **This project is a work in progress.** For now, the Android app works as a single-user personal archive, with photos and tags stored on your own device. A shared community archive is planned for the future.
 
+## A look inside
+
+Screenshots from the browser preview using sample records. Artwork dates and locations are illustrative. The Android personal archive starts empty.
+
+| Explore the map | A wall’s history | Add a photograph |
+| --- | --- | --- |
+| ![Map with graffiti tags](docs/screenshots/map.png) | ![A wall’s photo timeline](docs/screenshots/history.png) | ![Camera and gallery photo contribution](docs/screenshots/add-photo.png) |
+
 ## Try the Android app
 
 Download the APK above, open it on your Android phone, and follow the installation prompts. This is an early personal test release.
