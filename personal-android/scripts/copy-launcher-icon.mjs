@@ -5,7 +5,13 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const androidApp = path.join(root, 'android', 'app', 'src', 'main');
-const source = path.resolve(root, '..', 'mobile', 'assets', 'icon.png');
+const assets = path.resolve(root, '..', 'mobile', 'assets');
+const sources = {
+  launcher: path.join(assets, 'icon.png'),
+  // Adaptive foregrounds are zoomed and masked by the launcher. The square
+  // legacy icon is too large here; this transparent layer has safe padding.
+  foreground: path.join(assets, 'android-icon-foreground.png'),
+};
 const resources = path.join(androidApp, 'res');
 const mipmaps = (await readdir(resources, { withFileTypes: true }))
   .filter((entry) => entry.isDirectory() && /^mipmap-(mdpi|hdpi|xhdpi|xxhdpi|xxxhdpi)$/.test(entry.name))
@@ -31,6 +37,7 @@ for (const directory of mipmaps) {
   ]) {
     const destination = path.join(directory, name);
     const size = sizes?.[kind];
+    const source = sources[kind];
     if (size && process.platform === 'darwin') {
       execFileSync('sips', ['-s', 'format', 'png', '-z', String(size), String(size), source, '--out', destination], {
         stdio: 'ignore',
@@ -45,4 +52,4 @@ const background = path.join(resources, 'values', 'ic_launcher_background.xml');
 const colorXml = await readFile(background, 'utf8');
 await writeFile(background, colorXml.replace(/<color name="ic_launcher_background">[^<]*<\/color>/, '<color name="ic_launcher_background">#DFFF65</color>'));
 
-console.log(`Applied the existing mobile/assets/icon.png to ${mipmaps.length} Android launcher resource folders.`);
+console.log(`Applied the legacy icon and padded adaptive foreground to ${mipmaps.length} Android launcher resource folders.`);

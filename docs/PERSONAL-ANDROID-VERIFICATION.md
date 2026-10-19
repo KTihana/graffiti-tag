@@ -43,3 +43,11 @@ Personal Android 1.0.2, version code 3. SHA-256: `f621631371d3b0baffdc6afb2d607c
 Added the approved dark concrete/sticker design with a street-map overlay, the actual bundled Space Grotesk Bold title, and an animated indeterminate loading bar. Foreground artwork scales to fit short screens, landscape and tablets; the background alone crops. The personal export includes this design in the initial HTML response, before JavaScript, and precaches its artwork and font for offline startup. Reduced-motion preferences disable the loading animation. The Android system splash uses a separate pin with proportional transparent padding inside its icon mask.
 
 Validation: Expo lint, TypeScript, all 24 unit/database tests, both personal browser tests (archive/backup/offline editing and pre-JavaScript loading), APK build and signature verification. The loading test checks 320×568, 412×915, 915×412 and 800×1280 layouts, loaded artwork, reduced motion and transition into the app. Installed over 1.0.1 on the API 36 emulator without clearing data; saved archive/bookmark storage remained unchanged and the existing wall was visible. Physical-phone verification remains pending.
+
+## 19 October 2026: home-screen icon fix
+
+Personal Android 1.0.3, version code 4. SHA-256: `d952c34b5ba65cb58b853a1d1adcfd4f9252151d19453742545c9b4780f981c8`.
+
+The personal build previously copied the oversized, opaque legacy icon into the adaptive foreground, so circular launcher masks clipped the pin. The build now uses the existing transparent, padded `android-icon-foreground.png` for adaptive foreground resources at every density. Legacy icons retain their existing source. The full-screen loading design is unchanged.
+
+Verified script syntax, APK build/signature and installation over 1.0.2 in the API 36 emulator. Inspected the installed launcher icon and a circular-mask preview. All foreground pixels with alpha greater than 8 lie within normalized radius 0.2819, inside Android's guaranteed circular safe radius of 33/108 (0.3056); the tip and paint drips remain visible.
