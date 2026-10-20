@@ -1,5 +1,6 @@
+import { validArtworkKinds } from '../categories';
 import { validateSocialBackup, type SocialData } from './socialModel';
-import type { ArtType, Condition, Precision, Report, Revision, Tag } from '../types';
+import type { Condition, Precision, Report, Revision, Tag } from '../types';
 
 export const BACKUP_FORMAT = 'graffiti-tag-personal-backup';
 export const BACKUP_VERSION = 1;
@@ -22,7 +23,6 @@ export type PersonalBackup = {
 };
 
 const idPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const artTypes = new Set<ArtType>(['Piece', 'Mural', 'Lettering', 'Stencil', 'Other']);
 const precisions = new Set<Precision>(['exact', 'year', 'approximate', 'unknown']);
 const conditions = new Set<Condition>(['present', 'faded', 'covered', 'gone']);
 
@@ -60,7 +60,7 @@ function isSnapshot(value: unknown): boolean {
     isId(detail.photoId) &&
     typeof detail.artworkTitle === 'string' &&
     typeof detail.artist === 'string' &&
-    artTypes.has(detail.kind as ArtType) &&
+    validArtworkKinds(detail) &&
     validPhotoDate(detail) &&
     conditions.has(detail.condition as Condition) &&
     typeof detail.caption === 'string' &&
@@ -117,7 +117,7 @@ function validTag(value: unknown): value is Tag {
       artwork.title.length > 100 ||
       typeof artwork.artist !== 'string' ||
       artwork.artist.length > 100 ||
-      !artTypes.has(artwork.kind as ArtType)
+      !validArtworkKinds(artwork)
     )
       return false;
     artworkIds.add(artwork.id);

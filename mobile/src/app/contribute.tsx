@@ -1,3 +1,4 @@
+import { artworkKinds, toggleArtworkKind } from '../categories';
 import React, { useCallback, useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -488,13 +489,15 @@ export default function Contribute() {
                     placeholder="Unknown is okay"
                     maxLength={100}
                   />
+                  <Text style={ui.label}>Artwork categories</Text>
+                  <Text style={ui.muted}>Choose one or more categories.</Text>
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>
                     {(['Piece', 'Mural', 'Lettering', 'Stencil', 'Other'] as const).map((kind) => (
                       <Chip
                         key={kind}
                         text={kind}
-                        active={c.kind === kind}
-                        onPress={() => patch({ kind })}
+                        active={artworkKinds(c).includes(kind)}
+                        onPress={() => patch(toggleArtworkKind(c, kind))}
                       />
                     ))}
                   </View>

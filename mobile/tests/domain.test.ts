@@ -124,3 +124,15 @@ test('multiple artwork types match either selection and keep photo/year associat
   assert.ok(!matches(mixed, '', ['Mural', 'Stencil'], '2026'));
   assert.ok(!matches(mural, 'does not exist', ['Mural', 'Stencil'], ''));
 });
+
+
+test('each category of an artwork is searchable and empty or invalid selections are rejected', () => {
+  const tag = structuredClone(demoTags[1]);
+  tag.artworks[0].kinds = ['Mural', 'Stencil'];
+  assert.ok(matches(tag, '', ['Stencil'], ''));
+  assert.ok(matches(tag, '', ['Mural'], ''));
+  assert.ok(!matches(tag, '', ['Lettering'], ''));
+  assert.equal(validateContribution({ ...contribution, kinds: ['Piece', 'Stencil'] }), null);
+  assert.match(validateContribution({ ...contribution, kinds: [] })!, /category/);
+  assert.match(validateContribution({ ...contribution, kinds: ['Piece', 'Piece'] })!, /category/);
+});

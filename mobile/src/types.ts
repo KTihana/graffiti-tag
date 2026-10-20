@@ -4,7 +4,7 @@ export type ArtType = 'Piece' | 'Mural' | 'Lettering' | 'Stencil' | 'Other';
 export type Point = { latitude: number; longitude: number };
 export type UserLocation = Point & { accuracy: number | null };
 export type Viewport = Point & { latitudeDelta: number; longitudeDelta: number };
-export type Artwork = { id: string; title: string; artist: string; kind: ArtType };
+export type Artwork = { id: string; title: string; artist: string; kind: ArtType; kinds?: ArtType[] };
 export type Photo = {
   id: string;
   artworkId: string;
@@ -36,7 +36,7 @@ export type TagFields = Pick<Tag, 'title' | 'description' | 'latitude' | 'longit
 export type RecordDetails = Pick<
   Photo,
   'year' | 'takenOn' | 'precision' | 'condition' | 'caption' | 'photographer'
-> & { photoId: string; artworkTitle: string; artist: string; kind: ArtType };
+> & { photoId: string; artworkTitle: string; artist: string; kind: ArtType; kinds?: ArtType[] };
 export type Snapshot = TagFields & { record?: RecordDetails };
 export type Revision = {
   id: string;
@@ -66,6 +66,7 @@ export type Contribution = {
   artworkTitle: string;
   artist: string;
   kind: ArtType;
+  kinds?: ArtType[];
   imageUri: string;
   mimeType: string;
   year: string;

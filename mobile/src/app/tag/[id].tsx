@@ -1,3 +1,4 @@
+import { artworkKinds } from '../../categories';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -173,7 +174,7 @@ export default function TagDetail() {
           {tag.artworks.filter((a) => activeArt === 'all' || a.id === activeArt).map((a) => (
             <View key={a.id} style={[ui.card, { gap: 12 }]}>
               <Text style={ui.subtitle}>{a.title}</Text>
-              <Text style={ui.muted}>By {a.artist} · {a.kind}</Text>
+              <Text style={ui.muted}>By {a.artist} · {artworkKinds(a).join(' · ')}</Text>
               <PieceActions artworkId={a.id} tagId={tag.id} title={a.title} />
             </View>
           ))}
@@ -247,7 +248,7 @@ export default function TagDetail() {
                   {art?.title || 'Untitled'}
                 </Text>
                 <Text style={ui.muted}>
-                  {art?.artist || 'Unknown artist'} · {art?.kind}
+                  {art?.artist || 'Unknown artist'} · {art ? artworkKinds(art).join(' · ') : ''}
                 </Text>
                 {!!p.caption && <Text style={ui.body}>{p.caption}</Text>}
                 <Text style={ui.muted}>

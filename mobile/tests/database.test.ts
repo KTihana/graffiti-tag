@@ -26,6 +26,7 @@ test('database enforces public reads, accountable edits, photo preservation, and
     ),
   );
   await db.exec(await readFile(new URL('../../supabase/migrations/003_likes_collections.sql', import.meta.url), 'utf8'));
+  await db.exec(await readFile(new URL('../../supabase/migrations/004_artwork_categories.sql', import.meta.url), 'utf8'));
   const user = randomUUID(),
     other = randomUUID();
   await db.query(
@@ -298,6 +299,27 @@ test('database enforces public reads, accountable edits, photo preservation, and
     await login(null);
     assert.equal((await db.query('select * from public.tags')).rows.length, 0);
     assert.equal((await db.query('select * from public.photos')).rows.length, 0);
+  });
+  await t.test('multiple artwork categories survive contribution and correction; invalid lists are rejected', async () => {
+    await login(user);
+    const p = await payload(user);
+    Object.assign(p.artwork, { kinds: ['Piece', 'Stencil'] });
+    const result = await db.query<{ id: string }>('select public.add_contribution($1) as id', [p]);
+    const id = result.rows[0].id;
+    const read = async () => (await db.query<{ tag: any }>('select public.read_tag($1) as tag', [id])).rows[0].tag;
+    let saved = await read();
+    assert.deepEqual(saved.artworks[0].kinds, ['Piece', 'Stencil']);
+    const photo = saved.photos[0];
+    const changes = { photoId: photo.id, artworkTitle: 'Layered wall', artist: 'Me', kind: 'Mural', kinds: ['Mural', 'Stencil'], year: photo.year, takenOn: photo.takenOn, precision: photo.precision, condition: photo.condition, caption: photo.caption, photographer: photo.photographer };
+    await db.query('select public.edit_record($1,$2,$3,$4,$5)', [id, photo.id, saved.revision, changes, 'Correct categories']);
+    saved = await read();
+    assert.deepEqual(saved.artworks[0].kinds, ['Mural', 'Stencil']);
+    for (const kinds of [[], ['Mural', 'Bogus'], ['Mural', 'Mural'], ['Stencil']]) {
+      await assert.rejects(db.query('select public.edit_record($1,$2,$3,$4,$5)', [id, photo.id, saved.revision, { ...changes, kinds }, 'Invalid categories']));
+    }
+    assert.deepEqual((await read()).artworks[0].kinds, ['Mural', 'Stencil']);
+    await login(null);
+    assert.deepEqual((await read()).artworks[0].kinds, ['Mural', 'Stencil']);
   });
   await db.close();
 });

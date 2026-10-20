@@ -39,10 +39,19 @@ The APK bundles its interface and works independently of the development compute
 
 Starting with 1.0.4, the app checks the public GitHub latest-release API on launch and shows a map banner when a newer compatible personal release is available. My archive > App updates also provides a manual check, installed version, release notes, and download button. Starting with 1.0.6, downloads stay inside the app with progress and an Install update button. The native updater verifies the APK package, signing certificate, and newer version before opening Android’s installation confirmation. Android may ask once to allow installs from Graffiti Tag; after returning, installation continues. Cancelled installation can be retried without downloading again. No browser or file manager is used. Versions before 1.0.6 need one initial APK upgrade to receive this native updater. Starting with 1.0.8, each binary upgrade refreshes the app shell and removes obsolete offline service workers and shell caches. Photos in IndexedDB, archive records, and collections are preserved. App updates shows both the installed version and app-files version; Reload app files can repeat this recovery without removing archive data. No background push service or GitHub sign-in is required. Offline and failed checks leave the archive usable and can be retried.
 
-Install the new APK over the old app without uninstalling. Updates must keep application ID `app.graffititag.personal`, the same signing key, and a higher Android `versionCode`. Future releases must use a stable tag like `v1.0.8-personal`, attach `graffiti-tag-personal.apk`, and be published as the latest GitHub release. Keep `mobile/src/services/appUpdates.ts` and this package version aligned with the Android version. Never commit the signing key.
+Install the new APK over the old app without uninstalling. Updates must keep application ID `app.graffititag.personal`, the same signing key, and a higher Android `versionCode`. Future releases must use a stable tag like `v1.0.9-personal`, attach `graffiti-tag-personal.apk`, and be published as the latest GitHub release. Keep `mobile/src/services/appUpdates.ts` and this package version aligned with the Android version. Never commit the signing key.
 
 ## Search towns and places
 
 Enter a town, street address, landmark, or decimal coordinates (for example `45.555, 18.695`) and tap the search button or your keyboard’s Search key. The first match appears on the map; choose another named result when offered. Towns fit their area, while addresses and landmarks zoom in. A green pin and place label keep the search location visible even when no archive records exist there. Tap Done to close the choices or Clear location result to remove the search pin.
 
 Search does not need GPS permission. Named places require internet; coordinate searches work offline. Photon’s public service can be slow, so requests wait up to 30 seconds and can be retried. Successful searches are cached for the session. Android uses its native HTTP transport.
+
+
+## Artwork categories
+
+Version 1.0.9 lets you select several categories when adding a new artwork with a
+photo or correcting an existing artwork's details. Search matches any saved
+category. Existing records and older backups retain their original category;
+new backups preserve every selection. Categories belong to the artwork and apply
+to its photo history.

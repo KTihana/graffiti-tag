@@ -32,6 +32,11 @@ test('private archive: camera entry, GPS, photo, backup recovery, and offline ed
   await page.getByLabel('Wall name', { exact: true }).fill('My first personal wall');
   await page.getByRole('checkbox', { name: 'Confirm wall location', exact: true }).click();
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
+  await page.getByRole('button', { name: 'Mural', exact: true }).click();
+  await page.getByRole('button', { name: 'Stencil', exact: true }).click();
+  await page.getByRole('button', { name: 'Piece', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Mural', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: 'Stencil', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await page.getByRole('button', { name: 'Year', exact: true }).click();
   await page.getByLabel('Photo year', { exact: true }).fill('2010');
   await page
@@ -66,6 +71,7 @@ test('private archive: camera entry, GPS, photo, backup recovery, and offline ed
   const entry = Object.values(json.media)[0] as { originalBase64: string };
   expect(Buffer.from(entry.originalBase64, 'base64')).toEqual(original);
   expect(json.savedIds).toHaveLength(1);
+  expect(json.archive.tags[0].artworks[0].kinds).toEqual(['Mural', 'Stencil']);
   expect(json.social.collections[0].name).toBe('My favourite walls');
   expect(json.social.pieces).toHaveLength(1);
   expect(json.social.liked).toHaveLength(1);
@@ -98,6 +104,17 @@ test('private archive: camera entry, GPS, photo, backup recovery, and offline ed
   await recovered.waitForFunction(() =>
     [...document.images].some((image) => image.src.startsWith('blob:') && image.naturalWidth > 0),
   );
+  await expect(recovered.getByText('By Unknown artist · Mural · Stencil', { exact: true })).toBeVisible();
+  await recovered.getByRole('button', { name: 'Correct photo or artwork details', exact: true }).click();
+  await expect(recovered.getByRole('button', { name: 'Mural', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(recovered.getByRole('button', { name: 'Stencil', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await recovered.getByRole('button', { name: 'Mural', exact: true }).click();
+  await recovered.getByRole('button', { name: 'Lettering', exact: true }).click();
+  await recovered.getByLabel('What changed, and why?', { exact: true }).fill('Adjusted the artwork categories');
+  await recovered.getByRole('button', { name: 'Save correction', exact: true }).click();
+  await expect(recovered.getByText('By Unknown artist · Stencil · Lettering', { exact: true })).toBeVisible();
+  await recovered.reload();
+  await expect(recovered.getByText('By Unknown artist · Stencil · Lettering', { exact: true })).toBeVisible();
   await recovered.evaluate(() => navigator.serviceWorker.ready.then(() => true));
   await recoveredContext.setOffline(true);
   await recovered.reload();

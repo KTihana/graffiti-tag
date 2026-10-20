@@ -1,3 +1,4 @@
+import { artworkKinds } from '../categories';
 import * as Crypto from 'expo-crypto';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { fields, inViewport, validateContribution, validateFields } from '../domain';
@@ -89,6 +90,7 @@ export async function contribute(c: Contribution, actor: string): Promise<string
     title: c.artworkTitle.trim(),
     artist: c.artist.trim() || 'Unknown artist',
     kind: c.kind,
+    kinds: artworkKinds(c),
   };
   if (isDemo) {
     const data = await loadLocalArchive();
@@ -219,6 +221,7 @@ export function recordDetails(tag: Tag, photoId: string): RecordDetails {
     artworkTitle: a.title,
     artist: a.artist,
     kind: a.kind,
+    kinds: artworkKinds(a),
     year: p.year,
     takenOn: p.takenOn,
     precision: p.precision,
@@ -244,6 +247,7 @@ export async function editRecord(
     artworkTitle: changes.artworkTitle,
     artist: changes.artist,
     kind: changes.kind,
+    kinds: artworkKinds(changes),
     year: changes.year === null ? '' : String(changes.year),
     takenOn: changes.takenOn || '',
     precision: changes.precision,
@@ -266,6 +270,7 @@ export async function editRecord(
       title: changes.artworkTitle,
       artist: changes.artist || 'Unknown artist',
       kind: changes.kind,
+      kinds: artworkKinds(changes),
     });
     Object.assign(p, {
       year: changes.year,

@@ -1,3 +1,4 @@
+import { artworkKinds, validArtworkKinds } from './categories';
 import type { ArtType, Contribution, Photo, Point, Tag, TagFields, Viewport } from './types';
 
 export function dateLabel(p: Pick<Photo, 'precision' | 'year' | 'takenOn'>): string {
@@ -52,6 +53,7 @@ export function validateContribution(c: Contribution, today = new Date()): strin
   }
   if (!c.artworkId && (c.artworkTitle.trim().length < 2 || c.artworkTitle.length > 100))
     return 'Give the artwork a short name, or use “Untitled”.';
+  if (!c.artworkId && !validArtworkKinds(c)) return 'Choose at least one valid artwork category.';
   if (c.artist.length > 100 || c.photographer.length > 100 || c.caption.length > 2000)
     return 'Shorten the artist, photographer, or caption.';
   if (c.precision !== 'unknown') {
@@ -97,7 +99,7 @@ export function matches(tag: Tag, query: string, kinds: readonly ArtType[], year
     .join(' ')
     .toLowerCase();
   if (query && !searchable.includes(query.toLowerCase())) return false;
-  const artworks = kinds.length === 0 ? tag.artworks : tag.artworks.filter((a) => kinds.includes(a.kind));
+  const artworks = kinds.length === 0 ? tag.artworks : tag.artworks.filter((a) => artworkKinds(a).some((kind) => kinds.includes(kind)));
   if (kinds.length > 0 && !artworks.length) return false;
   return tag.photos.some(
     (p) =>

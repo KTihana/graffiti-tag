@@ -1,3 +1,4 @@
+import { artworkKinds } from '../categories';
 import { AppUpdateBanner } from '../components/AppUpdatePanel';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -104,7 +105,7 @@ export default function Explore() {
     orderedPhotos(selection.photos).find(
       (p) =>
         (!year || p.year === Number(year)) &&
-        (kinds.length === 0 || selection.artworks.some((a) => a.id === p.artworkId && kinds.includes(a.kind))),
+        (kinds.length === 0 || selection.artworks.some((a) => a.id === p.artworkId && artworkKinds(a).some((kind) => kinds.includes(kind)))),
     );
   const locate = async () => {
     const next = await findLocation();
@@ -519,7 +520,7 @@ export default function Explore() {
                 <Text style={ui.muted}>Lettering: Our broad category for artwork centred on letters or words, including signatures (tags), quick bubble letters (throw-ups) and calligraphy.</Text>
                 <Text style={ui.muted}>Stencil: An image or text made by applying paint through a cut-out template, sometimes in several layers.</Text>
                 <Text style={ui.muted}>Other: Work that does not fit these categories, such as stickers, pasted posters or mixed techniques.</Text>
-                <Text style={ui.muted}>These terms overlap: a piece usually uses lettering, and a mural can use stencils. Filters use the type saved with each artwork.</Text>
+                <Text style={ui.muted}>These terms overlap: a piece usually uses lettering, and a mural can use stencils. You can save an artwork in more than one category. Filters match any of its categories.</Text>
               </View>
             )}
             <Field

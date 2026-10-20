@@ -137,3 +137,16 @@ test('backs up private collections and derives local like counts, while acceptin
   assert.throws(() => validatePersonalBackup(backup), /invalid likes or collections/);
   assert.equal(validatePersonalBackup(validBackup()).social, undefined);
 });
+
+
+test('category lists survive backups and malformed lists cannot be imported', () => {
+  const backup = validBackup();
+  backup.archive.tags[0].artworks[0].kinds = ['Piece', 'Stencil'];
+  const restored = validatePersonalBackup(JSON.parse(JSON.stringify(backup)));
+  assert.deepEqual(restored.archive.tags[0].artworks[0].kinds, ['Piece', 'Stencil']);
+  for (const kinds of [[], ['Piece', 'Bogus'], ['Piece', 'Piece'], ['Stencil']]) {
+    const broken = JSON.parse(JSON.stringify(backup));
+    broken.archive.tags[0].artworks[0].kinds = kinds;
+    assert.throws(() => validatePersonalBackup(broken));
+  }
+});

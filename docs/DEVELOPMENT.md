@@ -93,3 +93,13 @@ Regression checks: `npm test` and, against a personal build preview,
 ### Android update checks
 
 Personal Android 1.0.4 adds automatic startup checks and My archive > App updates. The native bridge reads the installed version through Capacitor App.getInfo; the shared service compares numeric versions and accepts only stable personal release tags with an APK asset from this repository. A failed check does not block the local archive. The browser opens the GitHub APK download and Android asks the user to install it. Publishing a newer compatible APK as the latest GitHub release makes it discoverable from installed apps.
+
+### Multiple artwork categories (1.0.9)
+
+New contributions and photo/artwork corrections allow one or more categories.
+`kinds` stores the full selection and `kind` mirrors its first item for compatibility
+with older local archives and backups. Missing `kinds` is read as `[kind]`.
+Search matches any category of the photographed artwork, together with the photo year.
+Backup validation checks the full category list, including revision snapshots.
+Community deployments must apply `004_artwork_categories.sql` before using this client;
+the personal Android app stores its categories locally and needs no server migration.

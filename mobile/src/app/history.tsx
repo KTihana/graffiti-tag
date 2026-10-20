@@ -1,3 +1,4 @@
+import { artworkKinds } from '../categories';
 import React, { useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -16,6 +17,7 @@ function SnapshotText({ label, snapshot }: { label: string; snapshot: Snapshot }
       {r ? (
         <Text style={ui.body}>
           {r.artworkTitle} · {r.artist}
+          {'\n'}{artworkKinds(r).join(' · ')}
           {'\n'}
           {dateLabel(r)} · {r.condition}
           {'\n'}

@@ -1,3 +1,4 @@
+import { artworkKinds, toggleArtworkKind } from '../categories';
 import React, { useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -72,7 +73,7 @@ export default function EditRecord() {
         ) : (
           record && (
             <>
-              <Notice text="Artwork name, artist, and type apply to every photo of this artwork. Dates, captions, and photographer credit apply to this photo. All corrections are recorded; the image file is preserved." />
+              <Notice text="Artwork name, artist, and categories apply to every photo of this artwork. Dates, captions, and photographer credit apply to this photo. All corrections are recorded; the image file is preserved." />
               <Field
                 label="Artwork name"
                 value={record.artworkTitle}
@@ -85,13 +86,15 @@ export default function EditRecord() {
                 onChangeText={(artist) => patch({ artist })}
                 maxLength={100}
               />
+              <Text style={ui.label}>Artwork categories</Text>
+              <Text style={ui.muted}>Choose one or more categories.</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>
                 {(['Piece', 'Mural', 'Lettering', 'Stencil', 'Other'] as const).map((kind) => (
                   <Chip
                     key={kind}
                     text={kind}
-                    active={kind === record.kind}
-                    onPress={() => patch({ kind })}
+                    active={artworkKinds(record).includes(kind)}
+                    onPress={() => patch(toggleArtworkKind(record, kind))}
                   />
                 ))}
               </View>
