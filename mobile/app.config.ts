@@ -9,6 +9,7 @@ const config: ExpoConfig = {
   userInterfaceStyle: 'light',
   icon: './assets/icon.png',
   android: {
+    permissions: ['android.permission.VIBRATE'],
     package: 'app.graffititag.archive',
     adaptiveIcon: {
       foregroundImage: './assets/android-icon-foreground.png',

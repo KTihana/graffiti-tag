@@ -12,6 +12,7 @@ import {
   TextInput,
   useWindowDimensions,
   View,
+  Vibration,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -25,7 +26,7 @@ import type { PlaceResult } from '../services/placeSearch';
 import { useArchive } from '../state/Archive';
 import { useUserLocation } from '../state/UserLocation';
 import { colors, fonts, ui } from '../theme';
-import { INITIAL_VIEW, type Tag } from '../types';
+import { INITIAL_VIEW, type Point, type Tag } from '../types';
 
 export default function Explore() {
   const { width, height } = useWindowDimensions(),
@@ -44,7 +45,22 @@ export default function Explore() {
     [year, setYear] = useState(''),
     [filterOpen, setFilterOpen] = useState(false),
     [selected, setSelected] = useState<string | undefined>();
+  const filtersActive = kind !== 'All' || !!year;
   const [topHeight, setTopHeight] = useState(200);
+  const [draft, setDraft] = useState<Point>();
+  useEffect(() => {
+    if (!draft) return;
+    const timer = setTimeout(() => {
+      router.push({ pathname: '/contribute', params: { lat: draft.latitude, lng: draft.longitude, placed: '1' } });
+      setDraft(undefined);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [draft]);
+  const placeTag = (point: Point) => {
+    if (draft) return;
+    Vibration.vibrate(40);
+    setDraft(point);
+  };
   const [places, setPlaces] = useState<PlaceResult[]>([]);
   const [activePlace, setActivePlace] = useState<PlaceResult | null>(null);
   const searchInput = useRef<React.ComponentRef<typeof TextInput>>(null);
@@ -183,41 +199,19 @@ export default function Explore() {
           <Pressable accessibilityLabel="Clear search" onPress={() => changeQuery('')}>
             <Icon name="close-circle" size={19} />
           </Pressable>
-        ) : (
-          <View style={s.searchDot} />
-        )}
-      </View>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 7 }}
-      >
-        <Chip
-          text="All tags"
-          active={kind === 'All' && !year}
-          onPress={() => {
-            setKind('All');
-            setYear('');
-          }}
-          icon="apps-outline"
-        />
-        <Chip
-          text="Pieces"
-          active={kind === 'Piece'}
-          onPress={() => setKind(kind === 'Piece' ? 'All' : 'Piece')}
-        />
-        <Chip
-          text="Murals"
-          active={kind === 'Mural'}
-          onPress={() => setKind(kind === 'Mural' ? 'All' : 'Mural')}
-        />
-        <Chip
-          text={year || 'Filters'}
-          active={!!year || ['Lettering', 'Stencil', 'Other'].includes(kind)}
+        ) : null}
+        <View style={s.filterDivider} />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Filters"
+          accessibilityHint={filtersActive ? 'Filters are active. Edit artwork type or year.' : 'Filter by artwork type or year.'}
+          style={[s.filterButton, filtersActive && s.filterButtonActive]}
           onPress={() => setFilterOpen(true)}
-          icon="options-outline"
-        />
-      </ScrollView>
+        >
+          <Icon name="options-outline" size={21} color={colors.ink} />
+          {filtersActive && <View style={s.filterIndicator} />}
+        </Pressable>
+      </View>
       <AppUpdateBanner />
       <UserLocationStatus position={position} />
       {tags.length >= 250 && (
@@ -314,6 +308,7 @@ export default function Explore() {
           <Text style={{ fontFamily: fonts.bold, fontSize: 13 }}>Add tag</Text>
         </Pressable>
       </View>
+      <Text style={[ui.muted, { marginBottom: 8 }]}>Touch and hold the map to place a tag.</Text>
       <View testID="wall-discovery" style={s.discovery}>
         <View style={[ui.row, { justifyContent: 'space-between', marginBottom: 12 }]}>
           <View style={{ flex: 1, minWidth: 0 }}>
@@ -387,6 +382,8 @@ export default function Explore() {
         satellite={satellite}
         userLocation={position}
         searchPlace={activePlace || undefined}
+        onLongPress={placeTag}
+        draft={draft}
       />
       </View>
       {scrollPanel ? (
@@ -558,7 +555,8 @@ const s = StyleSheet.create({
   search: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingLeft: 16,
+    paddingRight: 4,
     height: 53,
     borderWidth: 1,
     borderColor: colors.line,
@@ -574,7 +572,10 @@ const s = StyleSheet.create({
     color: colors.ink,
     height: '100%',
   },
-  searchDot: { width: 7, height: 7, backgroundColor: colors.lime, borderRadius: 4 },
+  filterDivider: { width: 1, height: 22, backgroundColor: colors.line },
+  filterButton: { width: 44, height: 44, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  filterButtonActive: { backgroundColor: colors.lime },
+  filterIndicator: { position: 'absolute', top: 7, right: 7, width: 6, height: 6, borderRadius: 3, backgroundColor: colors.ink },
   searchResult: {
     flexDirection: 'row',
     alignItems: 'center',

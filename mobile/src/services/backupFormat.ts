@@ -1,3 +1,4 @@
+import { validateSocialBackup, type SocialData } from './socialModel';
 import type { ArtType, Condition, Precision, Report, Revision, Tag } from '../types';
 
 export const BACKUP_FORMAT = 'graffiti-tag-personal-backup';
@@ -16,6 +17,7 @@ export type PersonalBackup = {
   createdAt: string;
   archive: { tags: Tag[]; revisions: Revision[]; reports: Report[] };
   savedIds: string[];
+  social?: SocialData;
   media: Record<string, BackupMediaEntry>;
 };
 
@@ -253,6 +255,12 @@ export function validatePersonalBackup(value: unknown): PersonalBackup {
     throw new Error('Backup contains a saved-tag reference that does not exist.');
   }
 
+  if (value.social !== undefined) {
+    const owners = new Map(tags.flatMap((tag) => (tag as Tag).artworks.map((a) => [a.id, (tag as Tag).id] as [string, string])));
+    validateSocialBackup(value.social, owners);
+    // Local counts are derived from likes, never trusted from an imported file.
+    value.social.counts = Object.fromEntries(value.social.liked.map((id) => [id, 1]));
+  }
   const mediaIds = Object.keys(value.media);
   if (
     mediaIds.length !== photoOwners.size ||

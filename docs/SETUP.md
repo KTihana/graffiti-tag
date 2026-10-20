@@ -6,8 +6,11 @@ Create a Supabase project in an appropriate region. In its SQL editor, run the m
 
 1. `supabase/migrations/001_archive.sql`
 2. `supabase/migrations/002_record_corrections.sql`
+3. `supabase/migrations/003_likes_collections.sql`
 
-They create tags, artworks, photos, profiles, revisions, reports, moderator roles, storage buckets, policies, and narrowly scoped RPCs. They are initial migrations and should only be applied once to a fresh project.
+They create tags, artworks, photos, profiles, revisions, reports, moderator roles, likes, private saved pieces and collections, storage buckets, policies, and narrowly scoped RPCs. Apply each migration once. Existing projects with migrations 001 and 002 need only migration 003.
+
+Likes belong to individual artworks across their photographs. Community members must sign in to like, save, and organize pieces; aggregate like counts are public. Collections are private. A piece can belong to several collections. Removing it from a collection or deleting a collection keeps the piece saved; unsaving removes it from every collection. Counts refresh every 30 seconds while the app is open. Personal/demo mode stores these features on the device, with no shared count. Personal backups include likes and collections; older backups without these fields remain supported.
 
 Copy `mobile/.env.example` to `mobile/.env`. Set `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` using the project's URL and **publishable key**, never its service-role key.
 

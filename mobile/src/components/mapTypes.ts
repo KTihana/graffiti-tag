@@ -8,6 +8,8 @@ export type MapProps = {
   selectedId?: string;
   satellite?: boolean;
   onPick?: (p: Point) => void;
+  onLongPress?: (p: Point) => void;
+  draft?: Point;
   pick?: Point;
   userLocation?: UserLocation | null;
 };

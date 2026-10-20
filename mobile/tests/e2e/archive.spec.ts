@@ -97,7 +97,6 @@ test('map search, empty filters, and desktop layout remain usable', async ({ pag
       geometry: { coordinates: berlin ? [13.4, 52.52] : [15.98, 45.81] },
     }] } });
   });
-
   await page.goto('/');
   await page.getByRole('button', { name: 'Filters', exact: true }).click();
   await page.getByLabel('Year photographed').fill('1950');
@@ -105,7 +104,8 @@ test('map search, empty filters, and desktop layout remain usable', async ({ pag
   await expect(
     page.getByText('There are stories here waiting to be saved.', { exact: true }),
   ).toBeVisible();
-  await page.getByRole('button', { name: 'All tags', exact: true }).click();
+  await page.getByRole('button', { name: 'Filters', exact: true }).click();
+  await page.getByRole('button', { name: 'Reset filters', exact: true }).click();
   await page.getByLabel('Search archive or city').fill('Berlin');
   await page.getByLabel('Search archive or city').press('Enter');
   await expect(page.getByLabel('Search archive or city')).toHaveValue('');

@@ -44,6 +44,12 @@ test('private archive: camera entry, GPS, photo, backup recovery, and offline ed
   await expect(page).toHaveURL(/\/tag\/[a-f0-9-]+$/);
   const tagPath = new URL(page.url()).pathname;
   await page.getByRole('button', { name: 'Save tag', exact: true }).click();
+  await page.getByRole('button', { name: 'Like Untitled', exact: true }).click();
+  await page.getByRole('button', { name: 'Save piece', exact: true }).click();
+  await page.getByLabel('Collection name', { exact: true }).fill('My favourite walls');
+  await page.getByRole('button', { name: 'Create collection', exact: true }).click();
+  await expect(page.getByRole('checkbox', { name: 'My favourite walls', exact: true })).toBeChecked();
+  await page.getByRole('button', { name: 'Done', exact: true }).click();
   await page.reload();
   await expect(
     page.getByText('My first personal wall', { exact: true }).filter({ visible: true }),
@@ -60,6 +66,9 @@ test('private archive: camera entry, GPS, photo, backup recovery, and offline ed
   const entry = Object.values(json.media)[0] as { originalBase64: string };
   expect(Buffer.from(entry.originalBase64, 'base64')).toEqual(original);
   expect(json.savedIds).toHaveLength(1);
+  expect(json.social.collections[0].name).toBe('My favourite walls');
+  expect(json.social.pieces).toHaveLength(1);
+  expect(json.social.liked).toHaveLength(1);
   await page.screenshot({ path: 'artifacts/personal-account-phone.png', fullPage: true });
 
   const recoveredContext = await browser.newContext({
@@ -81,6 +90,11 @@ test('private archive: camera entry, GPS, photo, backup recovery, and offline ed
     recovered.getByText('My first personal wall', { exact: true }).filter({ visible: true }),
   ).toBeVisible();
   await expect(recovered.getByRole('button', { name: 'Unsave tag', exact: true })).toBeVisible();
+  await expect(recovered.getByRole('button', { name: 'Unlike Untitled', exact: true })).toContainText('1 like');
+  await recovered.goto('/collection');
+  await recovered.getByRole('button', { name: 'My favourite walls (1)', exact: true }).click();
+  await expect(recovered.getByRole('button', { name: 'Open piece Untitled', exact: true })).toBeVisible();
+  await recovered.goto(tagPath);
   await recovered.waitForFunction(() =>
     [...document.images].some((image) => image.src.startsWith('blob:') && image.naturalWidth > 0),
   );

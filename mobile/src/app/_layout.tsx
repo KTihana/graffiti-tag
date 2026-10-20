@@ -11,6 +11,7 @@ import { SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk/700Bold';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppUpdatesProvider } from '../state/AppUpdates';
 import { ArchiveProvider } from '../state/Archive';
+import { SocialProvider } from '../state/Social';
 import { UserLocationProvider } from '../state/UserLocation';
 import { installWebInputFocusStyle } from '../components/webFocus';
 import LoadingScreen, { loadingArtwork } from '../components/LoadingScreen';
@@ -48,18 +49,20 @@ export default function Layout() {
   return (
     <SafeAreaProvider>
       <ArchiveProvider>
-        <AppUpdatesProvider>
-          <UserLocationProvider>
-            <StatusBar style="dark" />
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                contentStyle: { backgroundColor: '#F9FAF5' },
-                animation: 'slide_from_right',
-              }}
-            />
-          </UserLocationProvider>
-        </AppUpdatesProvider>
+        <SocialProvider>
+          <AppUpdatesProvider>
+            <UserLocationProvider>
+              <StatusBar style="dark" />
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  contentStyle: { backgroundColor: '#F9FAF5' },
+                  animation: 'slide_from_right',
+                }}
+              />
+            </UserLocationProvider>
+          </AppUpdatesProvider>
+        </SocialProvider>
       </ArchiveProvider>
     </SafeAreaProvider>
   );

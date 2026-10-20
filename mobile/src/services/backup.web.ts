@@ -1,7 +1,8 @@
+import { emptySocial, mergeSocialBackup, type SocialData } from './socialModel';
 import { getNativeBridge } from './nativeBridge';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { LocalData } from './localArchive';
-import { loadLocalArchive, saveLocalArchive, SAVED_KEY } from './localArchive';
+import { loadLocalArchive, saveLocalArchive, SAVED_KEY, SOCIAL_KEY } from './localArchive';
 import { isPersonal } from './supabase';
 import { readLocalMediaBackup, restoreLocalMedia } from './media.web';
 import {
@@ -75,6 +76,7 @@ export async function exportPersonalBackup(): Promise<{ tags: number; photos: nu
     createdAt: new Date().toISOString(),
     archive,
     savedIds,
+    social: JSON.parse(await AsyncStorage.getItem(SOCIAL_KEY) || JSON.stringify(emptySocial())) as SocialData,
     media,
   };
   const contents = JSON.stringify(document);
@@ -200,7 +202,10 @@ export async function importPersonalBackup(): Promise<BackupImportResult | null>
       ...backup.archive.reports.filter((report) => newIds.has(report.tagId)),
     ],
   };
+  const currentSocial = JSON.parse(await AsyncStorage.getItem(SOCIAL_KEY) || JSON.stringify(emptySocial())) as SocialData;
+  const social = backup.social ? mergeSocialBackup(currentSocial, backup.social, new Set(newTags.flatMap((t) => t.artworks.map((a) => a.id)))) : currentSocial;
   await saveLocalArchive(next);
+  await AsyncStorage.setItem(SOCIAL_KEY, JSON.stringify(social));
   const savedSet = new Set(savedIds);
   for (const id of backup.savedIds) if (newIds.has(id)) savedSet.add(id);
   await AsyncStorage.setItem(SAVED_KEY, JSON.stringify([...savedSet]));

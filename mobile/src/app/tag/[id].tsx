@@ -17,13 +17,14 @@ import { getTag } from '../../services/repository';
 import { useArchive } from '../../state/Archive';
 import { colors, fonts, ui } from '../../theme';
 import type { Photo, Tag } from '../../types';
+import PieceActions from '../../components/PieceActions';
 export default function TagDetail() {
-  const { id } = useLocalSearchParams<{ id: string }>(),
+  const { id, artworkId } = useLocalSearchParams<{ id: string; artworkId?: string }>(),
     { version, saved, toggleSaved, isDemo, isPersonal } = useArchive();
   const [tag, setTag] = useState<Tag | null>(null),
     [error, setError] = useState(''),
     [loaded, setLoaded] = useState(false),
-    [activeArt, setActiveArt] = useState('all'),
+    [activeArt, setActiveArt] = useState(artworkId || 'all'),
     [fullPhoto, setFullPhoto] = useState<Photo | null>(null);
   useEffect(() => {
     let active = true;
@@ -166,7 +167,16 @@ export default function TagDetail() {
               onPress={() => router.push({ pathname: '/edit', params: { id } })}
             />
           </View>
+          <Button title="Your saved graffiti" secondary icon="albums-outline" onPress={() => router.push('/collection')} />
           <View style={ui.divider} />
+          <Text style={ui.subtitle}>The pieces on this wall</Text>
+          {tag.artworks.filter((a) => activeArt === 'all' || a.id === activeArt).map((a) => (
+            <View key={a.id} style={[ui.card, { gap: 12 }]}>
+              <Text style={ui.subtitle}>{a.title}</Text>
+              <Text style={ui.muted}>By {a.artist} · {a.kind}</Text>
+              <PieceActions artworkId={a.id} tagId={tag.id} title={a.title} />
+            </View>
+          ))}
           <View style={[ui.row, { justifyContent: 'space-between' }]}>
             <Text style={ui.subtitle}>Layers of history</Text>
             <Text style={ui.muted}>

@@ -43,8 +43,8 @@ export default function ArchiveMap(props: MapProps) {
       toolbarEnabled={false}
       showsCompass={false}
       mapPadding={{
-        top: props.pick ? 10 : 200,
-        bottom: props.pick ? 10 : 350,
+        top: props.pick || props.draft ? 10 : 200,
+        bottom: props.pick || props.draft ? 10 : 350,
         left: 10,
         right: 10,
       }}
@@ -55,6 +55,7 @@ export default function ArchiveMap(props: MapProps) {
         { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
       ]}
       onPress={(e) => props.onPick?.(e.nativeEvent.coordinate)}
+      onLongPress={(e) => props.onLongPress?.(e.nativeEvent.coordinate)}
       onRegionChangeComplete={(v) => {
         setView(v);
         props.onViewport?.(v);
@@ -81,6 +82,11 @@ export default function ArchiveMap(props: MapProps) {
       ))}
       {props.searchPlace && <Marker coordinate={props.searchPlace} pinColor="#3B735B" title={props.searchPlace.title} />}
       {props.pick && <Marker coordinate={props.pick} pinColor="#EA6347" title="Your wall" />}
+      {props.draft && (
+        <Marker coordinate={props.draft} anchor={{ x: 0.5, y: 0.92 }} title="New tag location">
+          <GraffitiPinMarker count={1} selected />
+        </Marker>
+      )}
     </MapView>
   );
 }

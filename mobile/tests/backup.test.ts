@@ -68,7 +68,7 @@ function validBackup(): PersonalBackup {
       reports: [],
     },
     savedIds: [tagId],
-    media,
+    media: structuredClone(media),
   } as PersonalBackup;
 }
 
@@ -123,4 +123,17 @@ test('rejects invalid dates, out-of-range coordinates, and inherited or prototyp
   const inheritedMedia = validBackup();
   inheritedMedia.media = Object.create({ [photoId]: media[photoId] });
   assert.throws(() => validatePersonalBackup(inheritedMedia), /missing image files/i);
+});
+
+test('backs up private collections and derives local like counts, while accepting older backups', () => {
+  const backup = validBackup();
+  backup.social = {
+    liked: [artworkId], counts: { [artworkId]: 999 },
+    pieces: [{ artworkId, tagId }],
+    collections: [{ id: revisionId, name: 'Favourites', artworkIds: [artworkId] }],
+  };
+  assert.equal(validatePersonalBackup(backup).social?.counts[artworkId], 1);
+  backup.social.collections[0].artworkIds.push('missing-artwork');
+  assert.throws(() => validatePersonalBackup(backup), /invalid likes or collections/);
+  assert.equal(validatePersonalBackup(validBackup()).social, undefined);
 });

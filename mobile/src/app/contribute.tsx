@@ -15,7 +15,7 @@ import { useUserLocation } from '../state/UserLocation';
 import { colors, ui } from '../theme';
 import { INITIAL_VIEW, type Contribution, type Tag } from '../types';
 export default function Contribute() {
-  const params = useLocalSearchParams<{ tagId?: string; lat?: string; lng?: string }>(),
+  const params = useLocalSearchParams<{ tagId?: string; lat?: string; lng?: string; placed?: string }>(),
     { isDemo, isPersonal, session, alias, refresh } = useArchive();
   const { position, locating, locate: findLocation, error: locationError, dismissError } = useUserLocation();
   const [c, setC] = useState<Contribution>({
@@ -44,7 +44,7 @@ export default function Contribute() {
     [nearby, setNearby] = useState<Tag[]>([]),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
-    [confirmedLocation, setConfirmedLocation] = useState(!!params.tagId),
+    [confirmedLocation, setConfirmedLocation] = useState(!!params.tagId || params.placed === '1'),
     [target, setTarget] = useState({ ...c.point, latitudeDelta: 0.012, longitudeDelta: 0.012 });
   const patch = (update: Partial<Contribution>) => setC((prev) => ({ ...prev, ...update }));
   const applyPhoto = useCallback((
@@ -71,7 +71,7 @@ export default function Contribute() {
     }
     const lat = asset.exif?.GPSLatitude,
       lng = asset.exif?.GPSLongitude;
-    if (!c.tagId && typeof lat === 'number' && typeof lng === 'number') {
+    if (!c.tagId && !confirmedLocation && typeof lat === 'number' && typeof lng === 'number') {
       update.point = {
         latitude: asset.exif?.GPSLatitudeRef === 'S' ? -Math.abs(lat) : lat,
         longitude: asset.exif?.GPSLongitudeRef === 'W' ? -Math.abs(lng) : lng,
@@ -81,7 +81,7 @@ export default function Contribute() {
     }
     setC((prev) => ({ ...prev, ...update }));
     setError('');
-  }, [c.tagId]);
+  }, [c.tagId, confirmedLocation]);
   useEffect(() => {
     const native = getNativeBridge();
     if (!native) return;
@@ -274,6 +274,15 @@ export default function Contribute() {
           {!!error && <Notice text={error} error />}
           {step === 0 && (
             <>
+              {params.placed === '1' && (
+                <View style={{ gap: 8 }}>
+                  <Text style={ui.label}>YOUR TAG LOCATION</Text>
+                  <View style={{ height: 160, borderRadius: 20, overflow: 'hidden' }}>
+                    <ArchiveMap tags={[]} target={target} draft={c.point} onSelect={() => {}} />
+                  </View>
+                  <Text style={ui.muted}>Pin placed. Add a photo, then the wall and artwork details. You can adjust the location in the next step.</Text>
+                </View>
+              )}
               <Pressable
                 accessibilityLabel="Choose a photograph"
                 onPress={() => choose(false)}

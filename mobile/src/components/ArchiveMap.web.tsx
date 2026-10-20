@@ -6,6 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import type { MapProps } from './mapTypes';
 import { clusters } from './clusters';
 import type { UserLocation } from '../types';
+import { listenForMapLongPress } from './mapLongPress.web';
 
 const pinImages = {
   normal: Asset.fromModule(require('../../assets/markers/pin.png')).uri,
@@ -45,6 +46,26 @@ function GoogleUserLocation({ position }: { position?: UserLocation | null }) {
 function GoogleInner(props: MapProps) {
   const map = useMap(),
     [view, setView] = useState(props.target);
+  const callbacks = useRef(props);
+  useEffect(() => { callbacks.current = props; }, [props]);
+  const canHold = !!props.onLongPress;
+  useEffect(() => {
+    if (!map || !canHold) return;
+    const overlay = new google.maps.OverlayView();
+    overlay.onAdd = () => {};
+    overlay.draw = () => {};
+    overlay.onRemove = () => {};
+    overlay.setMap(map);
+    const element = map.getDiv();
+    const stop = listenForMapLongPress(element, (event) => {
+      const bounds = element.getBoundingClientRect();
+      const point = overlay.getProjection()?.fromContainerPixelToLatLng(
+        new google.maps.Point(event.clientX - bounds.left, event.clientY - bounds.top),
+      );
+      return point ? { latitude: point.lat(), longitude: point.lng() } : undefined;
+    }, (point) => callbacks.current.onLongPress?.(point));
+    return () => { stop(); overlay.setMap(null); };
+  }, [map, canHold]);
   useEffect(() => {
     const { latitude, longitude, latitudeDelta, longitudeDelta } = props.target;
     map?.fitBounds({ south: latitude - latitudeDelta / 2, north: latitude + latitudeDelta / 2, west: longitude - longitudeDelta / 2, east: longitude + longitudeDelta / 2 }, 0);
@@ -104,6 +125,10 @@ function GoogleInner(props: MapProps) {
         {props.pick && (
           <Marker position={{ lat: props.pick.latitude, lng: props.pick.longitude }} />
         )}
+        {props.draft && map && (
+          <Marker position={{ lat: props.draft.latitude, lng: props.draft.longitude }} title="New tag location"
+            icon={{ url: pinImages.selected, scaledSize: new google.maps.Size(44, 50), anchor: new google.maps.Point(22, 46) }} />
+        )}
       </GoogleMap>
     </div>
   );
@@ -127,6 +152,15 @@ function PreviewMap(props: MapProps) {
     callbacks = useRef(props);
   const [ready, setReady] = useState(false),
     [view, setView] = useState(props.target);
+  const canHold = !!props.onLongPress;
+  useEffect(() => {
+    const element = container.current, map = instance.current;
+    if (!ready || !element || !map || !canHold) return;
+    return listenForMapLongPress(element, (event) => {
+      const point = map.mouseEventToLatLng(event);
+      return { latitude: point.lat, longitude: ((point.lng + 540) % 360) - 180 };
+    }, (point) => callbacks.current.onLongPress?.(point));
+  }, [ready, canHold]);
   useEffect(() => {
     callbacks.current = props;
   }, [props]);
@@ -239,7 +273,12 @@ function PreviewMap(props: MapProps) {
         fillColor: '#EA6347',
         fillOpacity: 1,
       }).addTo(group);
-  }, [props.tags, props.selectedId, props.pick, view, ready]);
+    if (props.draft)
+      l.marker([props.draft.latitude, props.draft.longitude], {
+        title: 'New tag location', alt: 'New tag location',
+        icon: l.icon({ iconUrl: pinImages.selected, iconSize: [44, 50], iconAnchor: [22, 46] }),
+      }).addTo(group);
+  }, [props.tags, props.selectedId, props.pick, props.draft, view, ready]);
   useEffect(() => {
     const l = library.current, group = locationLayer.current, position = props.userLocation;
     if (!ready || !l || !group) return;

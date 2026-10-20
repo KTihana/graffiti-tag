@@ -38,19 +38,22 @@ export default function About() {
           <Notice text="This version is your private archive. A shared community archive is planned for later. Your personal records will not be published automatically." />
         )}
         <Text style={ui.body}>
-          Graffiti is a big part of culture. Walls change, buildings disappear, and a piece can be
-          gone overnight. Graffiti Tag gives those stories somewhere to stay.
+          Graffiti is how the city speaks and is a part of our culture. It carries local styles,
+          rivalries, and stories, with each generation of writers adding something of their own.
+          That culture takes years to build, but the work can disappear overnight. Pieces get
+          painted over and walls come down. Graffiti Tag is a way to keep a record of what was there.
         </Text>
-        <Text style={ui.subtitle}>One wall. Many lives.</Text>
+        <Text style={ui.subtitle}>Different cities. Different styles.</Text>
         <Text style={ui.body}>
-          A tag marks a wall. Artworks represent its different layers. Photographs document each
-          artwork over time, even if the photo is old or the piece is no longer there.
+          Seeing graffiti from around the world means getting to know the scenes behind it. The
+          letterforms, the spots, the ways writers make a style their own. It’s a shared culture,
+          but every place has its own history.
         </Text>
-        <Text style={ui.subtitle}>Built by the people who notice.</Text>
+        <Text style={ui.subtitle}>Help keep it on record.</Text>
         <Text style={ui.body}>
-          Credit artists by their chosen alias. Credit photographers separately. Use approximate or
-          unknown dates when needed. Add context, correct mistakes, and help preserve a useful
-          history.
+          A fresh piece or a tag from twenty years ago both belong in that history. Share your
+          photos, credit the writers, and add what you know. An old flick might be the only record
+          of a piece someone still remembers.
         </Text>
         <Notice text="Dates describe photographs, not a guarantee that an artwork is still present. A location marks an artwork; it does not imply public access." />
       </ScrollView>

@@ -6,6 +6,8 @@ import { isPersonal } from './supabase';
 export const LOCAL_KEY = isPersonal ? 'graffiti-tag-personal-v1' : 'graffiti-tag-demo-v1';
 export const SAVED_KEY = isPersonal ? 'graffiti-tag-personal-saved-v1' : 'demo-saved-tags';
 
+export const SOCIAL_KEY = isPersonal ? 'graffiti-tag-personal-social-v1' : 'graffiti-tag-demo-social-v1';
+
 export type LocalData = { tags: Tag[]; revisions: Revision[]; reports: Report[] };
 
 function initialLocalArchive(): LocalData {

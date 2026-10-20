@@ -25,6 +25,7 @@ test('database enforces public reads, accountable edits, photo preservation, and
       'utf8',
     ),
   );
+  await db.exec(await readFile(new URL('../../supabase/migrations/003_likes_collections.sql', import.meta.url), 'utf8'));
   const user = randomUUID(),
     other = randomUUID();
   await db.query(
@@ -250,6 +251,43 @@ test('database enforces public reads, accountable edits, photo preservation, and
       (await db.query<{ tag: any }>('select public.read_tag($1) as tag', [second])).rows[0].tag,
       null,
     );
+  });
+  await t.test('likes are unique per account and collections and saves remain private', async () => {
+    const collectionId = randomUUID();
+    const change = async (action: object) => (await db.query<any>('select public.change_social($1) as data', [action])).rows[0].data;
+    await login(user);
+    await change({ kind: 'like', artworkId, enabled: true });
+    await change({ kind: 'like', artworkId, enabled: true });
+    await change({ kind: 'create', collectionId, name: 'Zagreb favourites' });
+    await change({ kind: 'membership', collectionId, artworkId, enabled: true });
+    await login(other);
+    let social = await change({ kind: 'like', artworkId, enabled: true });
+    assert.equal(social.counts[artworkId], 2);
+    assert.equal(social.collections.length, 0);
+    assert.equal(social.pieces.length, 0);
+    assert.equal((await db.query('select * from public.graffiti_collections')).rows.length, 0);
+    for (const kind of ['rename', 'delete', 'membership']) {
+      await assert.rejects(change({ kind, collectionId, artworkId, name: 'Stolen', enabled: true }), /no longer exists/);
+    }
+    await login(null);
+    social = (await db.query<any>('select public.read_social() as data')).rows[0].data;
+    assert.equal(social.counts[artworkId], 2);
+    assert.deepEqual(social.liked, []);
+    assert.deepEqual(social.collections, []);
+    await assert.rejects(change({ kind: 'like', artworkId, enabled: true }), /permission denied/);
+    await login(user);
+    social = await change({ kind: 'like', artworkId, enabled: false });
+    assert.equal(social.counts[artworkId], 1);
+    assert.equal(social.pieces[0].tagId, tagId);
+    social = await change({ kind: 'membership', collectionId, artworkId, enabled: false });
+    assert.equal(social.pieces.length, 1);
+    await change({ kind: 'membership', collectionId, artworkId, enabled: true });
+    social = await change({ kind: 'save', artworkId, enabled: false });
+    assert.equal(social.pieces.length, 0);
+    assert.deepEqual(social.collections[0].artworkIds, []);
+    await change({ kind: 'membership', collectionId, artworkId, enabled: true });
+    social = await change({ kind: 'delete', collectionId });
+    assert.equal(social.pieces.length, 1);
   });
   await t.test('hidden tags disappear from anonymous reads', async () => {
     await login(user);
