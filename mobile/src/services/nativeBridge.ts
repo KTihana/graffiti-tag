@@ -10,6 +10,8 @@ export type PersonalNativeBridge = {
   isNative: true;
   searchPlaces?: (url: string) => Promise<unknown>;
   getAppVersion?: () => Promise<string>;
+  downloadUpdate?: (url: string, onProgress: (percent: number | null) => void) => Promise<void>;
+  installUpdate?: () => Promise<void>;
   takePhoto: (camera: boolean) => Promise<NativePhoto>;
   getLocation: () => Promise<UserLocation>;
   watchLocation: (
