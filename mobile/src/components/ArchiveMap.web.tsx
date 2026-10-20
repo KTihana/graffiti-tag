@@ -46,8 +46,8 @@ function GoogleInner(props: MapProps) {
   const map = useMap(),
     [view, setView] = useState(props.target);
   useEffect(() => {
-    map?.panTo({ lat: props.target.latitude, lng: props.target.longitude });
-    map?.setZoom(Math.round(Math.log2(360 / props.target.longitudeDelta)));
+    const { latitude, longitude, latitudeDelta, longitudeDelta } = props.target;
+    map?.fitBounds({ south: latitude - latitudeDelta / 2, north: latitude + latitudeDelta / 2, west: longitude - longitudeDelta / 2, east: longitude + longitudeDelta / 2 }, 0);
   }, [props.target, map]);
   const points = useMemo(() => clusters(props.tags, view), [props.tags, view]);
   return (
@@ -100,6 +100,7 @@ function GoogleInner(props: MapProps) {
             }
           />
         ))}
+        {props.searchPlace && <Marker position={{ lat: props.searchPlace.latitude, lng: props.searchPlace.longitude }} title={`Search result: ${props.searchPlace.title}`} />}
         {props.pick && (
           <Marker position={{ lat: props.pick.latitude, lng: props.pick.longitude }} />
         )}
@@ -122,6 +123,7 @@ function PreviewMap(props: MapProps) {
     library = useRef<typeof L | null>(null),
     layer = useRef<L.LayerGroup | null>(null),
     locationLayer = useRef<L.LayerGroup | null>(null),
+    searchLayer = useRef<L.LayerGroup | null>(null),
     callbacks = useRef(props);
   const [ready, setReady] = useState(false),
     [view, setView] = useState(props.target);
@@ -147,6 +149,7 @@ function PreviewMap(props: MapProps) {
         .addTo(m);
       layer.current = leaflet.layerGroup().addTo(m);
       locationLayer.current = leaflet.layerGroup().addTo(m);
+      searchLayer.current = leaflet.layerGroup().addTo(m);
       m.on('moveend', () => {
         const c = m.getCenter(),
           b = m.getBounds();
@@ -180,13 +183,25 @@ function PreviewMap(props: MapProps) {
     return () => observer.disconnect();
   }, [ready]);
   useEffect(() => {
-    if (ready)
-      instance.current?.flyTo(
-        [props.target.latitude, props.target.longitude],
-        Math.min(19, Math.round(Math.log2(360 / props.target.longitudeDelta))),
-        { duration: 0.8 },
-      );
+    const m = instance.current;
+    if (!ready || !m) return;
+    const { latitude, longitude, latitudeDelta, longitudeDelta } = props.target;
+    m.flyToBounds([[latitude - latitudeDelta / 2, longitude - longitudeDelta / 2], [latitude + latitudeDelta / 2, longitude + longitudeDelta / 2]], { duration: 0.8, maxZoom: 18 });
   }, [props.target, ready]);
+  useEffect(() => {
+    const l = library.current, group = searchLayer.current, place = props.searchPlace;
+    if (!ready || !l || !group) return;
+    group.clearLayers();
+    if (!place) return;
+    const el = document.createElement('span');
+    el.textContent = '●';
+    el.style.cssText = 'display:block;width:28px;height:28px;border:4px solid white;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:#3B735B;color:transparent;box-shadow:0 2px 8px #0004';
+    const marker = l.marker([place.latitude, place.longitude], {
+      title: `Search result: ${place.title}`, alt: `Search result: ${place.title}`,
+      icon: l.divIcon({ html: el, className: 'search-place-pin', iconSize: [28, 28], iconAnchor: [14, 32] }),
+    }).bindTooltip(place.title).addTo(group);
+    marker.getElement()?.setAttribute('aria-label', `Search result: ${place.title}`);
+  }, [props.searchPlace, ready]);
   useEffect(() => {
     const l = library.current,
       m = instance.current,

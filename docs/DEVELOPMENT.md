@@ -79,8 +79,8 @@ The personal Android shell and Leaflet web map use Photon for submitted city/add
 Google Maps builds retain Google's geocoder. `EXPO_PUBLIC_PHOTON_URL` can select a different
 Photon-compatible endpoint at build time. The default is `https://photon.komoot.io/api/`.
 Only explicit submissions send requests; identical pending requests are shared and up to
-100 successful lookups are cached for the session. Requests time out after 12 seconds.
-The map displays attribution to OpenStreetMap contributors.
+100 successful lookups are cached for the session. Requests time out after 30 seconds; the public server has been observed responding successfully after 14–17 seconds.
+The map displays attribution to OpenStreetMap contributors. Up to five named results include address context; towns use their returned bounds and addresses/landmarks get a closer view and a separate search pin. Decimal latitude, longitude pairs work offline. Android requests use Capacitor HTTP with an identifying User-Agent and bounded connect/read timeouts. No location permission is needed for search. Street-number-town input such as `Ilica 10 Zagreb` uses Photon’s `/structured` endpoint with separate street, house-number, and city parameters. Free-form requests returned an unrelated street segment rather than number 10, even with a comma.
 
 The [Photon public server](https://github.com/komoot/photon#demo-server) allows reasonable
 project traffic, with no availability guarantee. Use a dedicated instance before scaling

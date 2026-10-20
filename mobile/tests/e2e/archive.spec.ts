@@ -90,6 +90,14 @@ test('upload an old photograph, preserve it after reload, and submit and resolve
 });
 
 test('map search, empty filters, and desktop layout remain usable', async ({ page }) => {
+  await page.route('https://photon.komoot.io/api/**', (route) => {
+    const berlin = new URL(route.request().url()).searchParams.get('q') === 'Berlin';
+    return route.fulfill({ json: { features: [{
+      properties: { name: berlin ? 'Berlin' : 'Zagreb', osm_value: 'city' },
+      geometry: { coordinates: berlin ? [13.4, 52.52] : [15.98, 45.81] },
+    }] } });
+  });
+
   await page.goto('/');
   await page.getByRole('button', { name: 'Filters', exact: true }).click();
   await page.getByLabel('Year photographed').fill('1950');

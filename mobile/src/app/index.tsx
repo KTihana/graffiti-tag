@@ -20,7 +20,8 @@ import UserLocationStatus from '../components/UserLocationStatus';
 import { ArtImage, Button, Chip, Field, Icon, IconButton, Notice } from '../components/UI';
 import { orderedPhotos, dateLabel, matches } from '../domain';
 import { listTags } from '../services/repository';
-import { findPlace } from '../services/geocode';
+import { searchPlaces } from '../services/geocode';
+import type { PlaceResult } from '../services/placeSearch';
 import { useArchive } from '../state/Archive';
 import { useUserLocation } from '../state/UserLocation';
 import { colors, fonts, ui } from '../theme';
@@ -43,6 +44,10 @@ export default function Explore() {
     [year, setYear] = useState(''),
     [filterOpen, setFilterOpen] = useState(false),
     [selected, setSelected] = useState<string | undefined>();
+  const [topHeight, setTopHeight] = useState(200);
+  const [places, setPlaces] = useState<PlaceResult[]>([]);
+  const [activePlace, setActivePlace] = useState<PlaceResult | null>(null);
+  const searchInput = useRef<React.ComponentRef<typeof TextInput>>(null);
   const searchRequest = useRef(0);
   const searchPending = useRef(false);
   const [searchError, setSearchError] = useState('');
@@ -91,6 +96,7 @@ export default function Explore() {
     searchPending.current = false;
     setSearching(false);
     setSearchError('');
+    setPlaces([]);
     setQuery(value);
   };
   const searchPlace = async () => {
@@ -100,9 +106,13 @@ export default function Explore() {
     setSearching(true);
     setSearchError('');
     try {
-      const p = await findPlace(query.trim());
+      const results = await searchPlaces(query.trim());
       if (request !== searchRequest.current) return;
-      setTarget({ ...p, latitudeDelta: 0.05, longitudeDelta: 0.05 });
+      const first = results[0];
+      setTarget(first.viewport);
+      setActivePlace(first);
+      setPlaces(results.length > 1 ? results : []);
+      searchInput.current?.blur();
       setQuery('');
       setSelected(undefined);
     } catch (e) {
@@ -122,6 +132,7 @@ export default function Explore() {
   const topPanel = (
     <View
       pointerEvents="box-none"
+      onLayout={(event) => setTopHeight(event.nativeEvent.layout.height)}
       style={s.top}
     >
       <View style={s.brandRow}>
@@ -153,9 +164,10 @@ export default function Explore() {
       <View style={[s.search, searchFocused && s.searchFocused]}>
         <Icon name="search" size={19} color={colors.muted} />
         <TextInput
+          ref={searchInput}
           accessibilityLabel="Search archive or city"
           style={s.searchInput}
-          placeholder="Search a city, artist, or wall"
+          placeholder="Town, address, place, or coordinates"
           placeholderTextColor={colors.muted}
           value={query}
           onChangeText={changeQuery}
@@ -164,6 +176,9 @@ export default function Explore() {
           onBlur={() => setSearchFocused(false)}
           returnKeyType="search"
         />
+        {query ? (
+          <IconButton icon={searching ? 'hourglass-outline' : 'search'} label="Search places" disabled={searching} onPress={searchPlace} />
+        ) : null}
         {query ? (
           <Pressable accessibilityLabel="Clear search" onPress={() => changeQuery('')}>
             <Icon name="close-circle" size={19} />
@@ -208,12 +223,38 @@ export default function Explore() {
       {tags.length >= 250 && (
         <Notice text="Showing up to 250 walls. Zoom in to explore a smaller area." />
       )}
-      {query.length > 1 && (
-        <Pressable style={s.searchResult} onPress={searchPlace} disabled={searching}>
+      {query.trim().length > 0 && (
+        <Pressable accessibilityRole="button" style={s.searchResult} onPress={searchPlace} disabled={searching}>
           <Icon name="location-outline" size={18} />
           <Text style={[ui.body, { flex: 1 }]}>{searching ? `Finding “${query}”…` : `Find “${query}” on the map`}</Text>
           <Icon name="arrow-forward" size={16} />
         </Pressable>
+      )}
+      {activePlace && (
+        <View style={s.searchResult}>
+          <Icon name="location" color={colors.green} />
+          <View style={{ flex: 1 }}>
+            <Text style={ui.label}>{activePlace.title}</Text>
+            {!!activePlace.address && <Text style={ui.muted} numberOfLines={2}>{activePlace.address}</Text>}
+          </View>
+          <IconButton icon="close" label="Clear location result" onPress={() => { setActivePlace(null); setPlaces([]); }} />
+        </View>
+      )}
+      {places.length > 0 && (
+        <View style={{ backgroundColor: colors.paper, borderRadius: 14, padding: 10, gap: 6 }}>
+          <Text style={ui.label}>Choose a place</Text>
+          <ScrollView style={{ maxHeight: 210 }} keyboardShouldPersistTaps="handled" nestedScrollEnabled>
+            {places.map((place) => (
+              <Pressable key={place.id} accessibilityRole="button" accessibilityLabel={`Show ${place.title}, ${place.address} on map`}
+                style={{ padding: 12, minHeight: 52, borderBottomWidth: 1, borderColor: colors.line }}
+                onPress={() => { setTarget({ ...place.viewport }); setActivePlace(place); setPlaces([]); }}>
+                <Text style={ui.label}>{place.title}</Text>
+                {!!place.address && <Text style={ui.muted} numberOfLines={2}>{place.address}</Text>}
+              </Pressable>
+            ))}
+          </ScrollView>
+          <Button title="Done" secondary onPress={() => setPlaces([])} />
+        </View>
       )}
       {!!searchError && (
         <Pressable accessibilityLabel="Dismiss search error" onPress={() => setSearchError('')}>
@@ -345,6 +386,7 @@ export default function Explore() {
         onViewport={setViewport}
         satellite={satellite}
         userLocation={position}
+        searchPlace={activePlace || undefined}
       />
       </View>
       {scrollPanel ? (
@@ -357,7 +399,7 @@ export default function Explore() {
           keyboardShouldPersistTaps="handled"
         >
           {topPanel}
-          {bottomPanel}
+          {!places.length && bottomPanel}
         </ScrollView>
       ) : (
         <View pointerEvents="box-none" style={[s.panel, {
@@ -366,10 +408,10 @@ export default function Explore() {
           justifyContent: 'space-between', gap: 20,
         }]}>
           {topPanel}
-          {bottomPanel}
+          {!places.length && bottomPanel}
         </View>
       )}
-      <View style={[s.rightTools, { top: insets.top + (scrollPanel ? 12 : 220), right: insets.right + 12 }]}>
+      <View style={[s.rightTools, { top: insets.top + (scrollPanel ? 12 : Math.max(220, topHeight + 30)), right: insets.right + 12 }]}>
         {(!Platform.OS.includes('web') || process.env.EXPO_PUBLIC_GOOGLE_MAPS_WEB_API_KEY) && (
           <IconButton
             icon={satellite ? 'map-outline' : 'layers-outline'}

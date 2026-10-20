@@ -79,6 +79,7 @@ export default function ArchiveMap(props: MapProps) {
           <GraffitiPinMarker count={p.count} selected={p.id === props.selectedId} />
         </Marker>
       ))}
+      {props.searchPlace && <Marker coordinate={props.searchPlace} pinColor="#3B735B" title={props.searchPlace.title} />}
       {props.pick && <Marker coordinate={props.pick} pinColor="#EA6347" title="Your wall" />}
     </MapView>
   );

@@ -1,5 +1,5 @@
 import { App } from '@capacitor/app';
-import { Capacitor, registerPlugin } from '@capacitor/core';
+import { Capacitor, CapacitorHttp, registerPlugin } from '@capacitor/core';
 import { Camera, CameraDirection, CameraResultType, CameraSource, MediaTypeSelection } from '@capacitor/camera';
 import { Geolocation } from '@capacitor/geolocation';
 import { StatusBar, Style } from '@capacitor/status-bar';
@@ -25,6 +25,7 @@ const CAMERA_ROUTE_KEY = 'graffiti-native-camera-route';
 
 type GraffitiNativeBridge = {
   isNative: true;
+  searchPlaces(url: string): Promise<unknown>;
   getAppVersion(): Promise<string>;
   takePhoto(camera: boolean): Promise<NativePhoto>;
   getLocation(): Promise<UserLocation>;
@@ -150,6 +151,16 @@ async function saveBackup(contents: string, filename: string): Promise<void> {
 
 const bridge: GraffitiNativeBridge = {
   isNative: true,
+  async searchPlaces(url) {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'https:' || (!parsed.searchParams.get('q') && !(parsed.searchParams.get('street') && parsed.searchParams.get('housenumber') && parsed.searchParams.get('city')))) throw new Error('Invalid search URL');
+    const response = await CapacitorHttp.get({
+      url, connectTimeout: 10000, readTimeout: 30000, responseType: 'json',
+      headers: { 'User-Agent': 'GraffitiTag (https://github.com/KTihana/graffiti-tag)' },
+    });
+    if (response.status !== 200) throw new Error('Place search is unavailable');
+    return typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
+  },
   async getAppVersion() { return (await App.getInfo()).version; },
   takePhoto,
   getLocation,

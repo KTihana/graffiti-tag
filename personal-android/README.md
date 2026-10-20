@@ -40,3 +40,9 @@ The APK bundles its interface and works independently of the development compute
 Starting with 1.0.4, the app checks the public GitHub latest-release API on launch and shows a map banner when a newer compatible personal release is available. My archive > App updates also provides a manual check, installed version, release notes, and download button. Downloads open the system browser; Android handles APK installation with user confirmation. No background push service or GitHub sign-in is required. Offline and failed checks leave the archive usable and can be retried.
 
 Install the new APK over the old app without uninstalling. Updates must keep application ID `app.graffititag.personal`, the same signing key, and a higher Android `versionCode`. Future releases must use a stable tag like `v1.0.5-personal`, attach `graffiti-tag-personal.apk`, and be published as the latest GitHub release. Keep `mobile/src/services/appUpdates.ts` and this package version aligned with the Android version. Never commit the signing key.
+
+## Search towns and places
+
+Enter a town, street address, landmark, or decimal coordinates (for example `45.555, 18.695`) and tap the search button or your keyboard’s Search key. The first match appears on the map; choose another named result when offered. Towns fit their area, while addresses and landmarks zoom in. A green pin and place label keep the search location visible even when no archive records exist there. Tap Done to close the choices or Clear location result to remove the search pin.
+
+Search does not need GPS permission. Named places require internet; coordinate searches work offline. Photon’s public service can be slow, so requests wait up to 30 seconds and can be retried. Successful searches are cached for the session. Android uses its native HTTP transport.

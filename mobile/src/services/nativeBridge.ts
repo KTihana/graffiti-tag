@@ -8,6 +8,7 @@ export type NativePhoto = {
 
 export type PersonalNativeBridge = {
   isNative: true;
+  searchPlaces?: (url: string) => Promise<unknown>;
   getAppVersion?: () => Promise<string>;
   takePhoto: (camera: boolean) => Promise<NativePhoto>;
   getLocation: () => Promise<UserLocation>;
