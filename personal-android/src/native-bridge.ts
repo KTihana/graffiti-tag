@@ -14,6 +14,7 @@ type ArchiveBackupPlugin = {
 const AppUpdater = registerPlugin<{
   download(options: { url: string }): Promise<void>;
   install(): Promise<void>;
+  reloadAppFiles(): Promise<void>;
   addListener(event: 'progress', listener: (event: { received: number; total: number }) => void): Promise<{ remove(): Promise<void> }>;
 }>('AppUpdater');
 
@@ -35,6 +36,7 @@ type GraffitiNativeBridge = {
   getAppVersion(): Promise<string>;
   downloadUpdate(url: string, onProgress: (percent: number | null) => void): Promise<void>;
   installUpdate(): Promise<void>;
+  reloadAppFiles(): Promise<void>;
   takePhoto(camera: boolean): Promise<NativePhoto>;
   getLocation(): Promise<UserLocation>;
   watchLocation(onPosition: (position: UserLocation) => void, onError: (error: unknown) => void): Promise<() => void>;
@@ -178,6 +180,7 @@ const bridge: GraffitiNativeBridge = {
     finally { await listener.remove(); }
   },
   async installUpdate() { await AppUpdater.install(); },
+  async reloadAppFiles() { await AppUpdater.reloadAppFiles(); },
   takePhoto,
   getLocation,
   watchLocation,

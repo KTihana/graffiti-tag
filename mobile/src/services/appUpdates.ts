@@ -1,4 +1,4 @@
-export const PERSONAL_APP_VERSION = '1.0.6';
+export const PERSONAL_APP_VERSION = '1.0.8';
 export const RELEASES_URL = 'https://github.com/KTihana/graffiti-tag/releases';
 export const LATEST_RELEASE_API = 'https://api.github.com/repos/KTihana/graffiti-tag/releases/latest';
 export type AppRelease = { version: string; downloadUrl: string; notes: string };

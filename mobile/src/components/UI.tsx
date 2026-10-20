@@ -115,6 +115,7 @@ export function Chip({
       accessibilityRole="button"
       accessibilityLabel={text}
       accessibilityState={{ selected: !!active }}
+      aria-pressed={!!active}
       onPress={onPress}
       style={[s.chip, active && { backgroundColor: colors.ink }]}
     >

@@ -100,3 +100,20 @@ test('street number and town search finds the building, not another road segment
   await page.getByRole('button', { name: 'Add tag', exact: true }).click();
   await expect(page).toHaveURL(/lat=45\.813\d+&lng=15\.974\d+/);
 });
+
+test('search keeps focus and accepts typing when the keyboard resizes the screen', async ({ page }) => {
+  await page.goto('/');
+  const input = page.getByLabel('Search archive or city');
+  await input.click();
+  await expect(input).toBeFocused();
+  const original = await input.elementHandle();
+  // Android's keyboard shrinks the WebView below the compact-layout breakpoint.
+  await page.setViewportSize({ width: 412, height: 540 });
+  await expect(input).toBeFocused();
+  expect(await original!.evaluate((node) => node.isConnected)).toBe(true);
+  await page.keyboard.type('Osijek');
+  await expect(input).toHaveValue('Osijek');
+  await page.setViewportSize({ width: 412, height: 915 });
+  await expect(input).toBeFocused();
+  await expect(input).toHaveValue('Osijek');
+});

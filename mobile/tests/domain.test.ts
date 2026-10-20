@@ -84,9 +84,9 @@ test('viewport matching wraps across the international date line', () => {
 test('filters match the photograph belonging to the chosen artwork', () => {
   const t = structuredClone(demoTags[0]);
   t.artworks[1].kind = 'Mural';
-  assert.ok(matches(t, '', 'Mural', '2018'));
-  assert.ok(!matches(t, '', 'Mural', '2026'));
-  assert.ok(matches(t, 'railway', 'All', ''));
+  assert.ok(matches(t, '', ['Mural'], '2018'));
+  assert.ok(!matches(t, '', ['Mural'], '2026'));
+  assert.ok(matches(t, 'railway', [], ''));
 });
 test('nearby duplicate suggestions use real distances', () => {
   assert.equal(distanceMeters({ latitude: 0, longitude: 0 }, { latitude: 0, longitude: 0 }), 0);
@@ -106,4 +106,21 @@ test('today is valid just after local midnight', () => {
     ),
     null,
   );
+});
+
+
+test('multiple artwork types match either selection and keep photo/year associations', () => {
+  const mural = structuredClone(demoTags[1]);
+  const stencil = structuredClone(demoTags[2]);
+  const piece = structuredClone(demoTags[4]);
+  assert.ok(matches(mural, '', ['Mural', 'Stencil'], ''));
+  assert.ok(matches(stencil, '', ['Mural', 'Stencil'], ''));
+  assert.ok(!matches(piece, '', ['Mural', 'Stencil'], ''));
+  assert.ok(matches(piece, '', [], ''));
+  const mixed = structuredClone(demoTags[0]);
+  mixed.artworks[0].kind = 'Piece';
+  mixed.artworks[1].kind = 'Mural';
+  assert.ok(matches(mixed, '', ['Mural', 'Stencil'], '2018'));
+  assert.ok(!matches(mixed, '', ['Mural', 'Stencil'], '2026'));
+  assert.ok(!matches(mural, 'does not exist', ['Mural', 'Stencil'], ''));
 });

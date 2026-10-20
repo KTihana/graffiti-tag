@@ -1,12 +1,13 @@
 {
   "name": "graffiti-tag-personal-android",
-  "version": "1.0.6",
+  "version": "1.0.8",
   "description": "Local Capacitor shell for the Graffiti Tag personal Android archive",
   "main": "index.js",
   "scripts": {
     "copy:web": "node scripts/copy-web.mjs",
     "sync": "node scripts/copy-web.mjs && npx cap sync android",
-    "build:apk": "node scripts/build-apk.mjs"
+    "build:apk": "node scripts/build-apk.mjs",
+    "test:recovery": "node --test tests/app-files-recovery.test.mjs"
   },
   "keywords": [],
   "author": "",

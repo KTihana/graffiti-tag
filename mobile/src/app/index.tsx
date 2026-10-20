@@ -26,7 +26,7 @@ import type { PlaceResult } from '../services/placeSearch';
 import { useArchive } from '../state/Archive';
 import { useUserLocation } from '../state/UserLocation';
 import { colors, fonts, ui } from '../theme';
-import { INITIAL_VIEW, type Point, type Tag } from '../types';
+import { INITIAL_VIEW, type ArtType, type Point, type Tag } from '../types';
 
 export default function Explore() {
   const { width, height } = useWindowDimensions(),
@@ -41,11 +41,15 @@ export default function Explore() {
     [viewport, setViewport] = useState(INITIAL_VIEW);
   const [query, setQuery] = useState(''),
     [searchFocused, setSearchFocused] = useState(false),
-    [kind, setKind] = useState('All'),
+    [kinds, setKinds] = useState<ArtType[]>([]),
     [year, setYear] = useState(''),
     [filterOpen, setFilterOpen] = useState(false),
     [selected, setSelected] = useState<string | undefined>();
-  const filtersActive = kind !== 'All' || !!year;
+  const [typeHelpOpen, setTypeHelpOpen] = useState(false);
+  const toggleKind = (kind: ArtType) => setKinds((current) =>
+    current.includes(kind) ? current.filter((value) => value !== kind) : [...current, kind],
+  );
+  const filtersActive = kinds.length > 0 || !!year;
   const [topHeight, setTopHeight] = useState(200);
   const [draft, setDraft] = useState<Point>();
   useEffect(() => {
@@ -91,8 +95,8 @@ export default function Explore() {
     };
   }, [viewport, version, query]);
   const visible = useMemo(
-    () => tags.filter((t) => matches(t, query, kind, year)),
-    [tags, query, kind, year],
+    () => tags.filter((t) => matches(t, query, kinds, year)),
+    [tags, query, kinds, year],
   );
   const selection = visible.find((t) => t.id === selected) || visible[0];
   const photo =
@@ -100,7 +104,7 @@ export default function Explore() {
     orderedPhotos(selection.photos).find(
       (p) =>
         (!year || p.year === Number(year)) &&
-        (kind === 'All' || selection.artworks.find((a) => a.id === p.artworkId)?.kind === kind),
+        (kinds.length === 0 || selection.artworks.some((a) => a.id === p.artworkId && kinds.includes(a.kind))),
     );
   const locate = async () => {
     const next = await findLocation();
@@ -204,7 +208,7 @@ export default function Explore() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Filters"
-          accessibilityHint={filtersActive ? 'Filters are active. Edit artwork type or year.' : 'Filter by artwork type or year.'}
+          accessibilityHint={filtersActive ? `Filters are active. ${kinds.length ? kinds.join(', ') : 'All artwork types'}. Edit artwork types or year.` : 'Filter by artwork type or year.'}
           style={[s.filterButton, filtersActive && s.filterButtonActive]}
           onPress={() => setFilterOpen(true)}
         >
@@ -361,7 +365,7 @@ export default function Explore() {
               {loading ? 'Finding stories…' : 'There are stories here waiting to be saved.'}
             </Text>
             <Text style={ui.muted}>
-              {kind !== 'All' || year || query
+              {kinds.length > 0 || year || query
                 ? 'Try another filter, or add a photograph.'
                 : 'Be the first to document a wall in this area.'}
             </Text>
@@ -386,28 +390,26 @@ export default function Explore() {
         draft={draft}
       />
       </View>
-      {scrollPanel ? (
-        <ScrollView
-          testID="explore-panel"
-          style={[s.panel, { top: insets.top + 12, bottom: insets.bottom + 92,
-            left: insets.left + 12, width: sidePanel ? panelWidth : undefined,
-            right: sidePanel ? undefined : insets.right + 72 }]}
-          contentContainerStyle={s.panelContent}
-          keyboardShouldPersistTaps="handled"
-        >
-          {topPanel}
-          {!places.length && bottomPanel}
-        </ScrollView>
-      ) : (
-        <View pointerEvents="box-none" style={[s.panel, {
+      {/* Keep the input mounted when the keyboard changes the viewport height. */}
+      <ScrollView
+        testID="explore-panel"
+        pointerEvents="box-none"
+        scrollEnabled={scrollPanel}
+        style={[s.panel, scrollPanel ? {
+          top: insets.top + 12, bottom: insets.bottom + 92,
+          left: insets.left + 12, width: sidePanel ? panelWidth : undefined,
+          right: sidePanel ? undefined : insets.right + 72,
+        } : {
           top: insets.top + 18, bottom: insets.bottom + 94,
           left: insets.left + 18, right: insets.right + 18,
-          justifyContent: 'space-between', gap: 20,
-        }]}>
-          {topPanel}
-          {!places.length && bottomPanel}
-        </View>
-      )}
+        }]}
+        contentContainerStyle={s.panelContent}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="none"
+      >
+        {topPanel}
+        {!places.length && bottomPanel}
+      </ScrollView>
       <View style={[s.rightTools, { top: insets.top + (scrollPanel ? 12 : Math.max(220, topHeight + 30)), right: insets.right + 12 }]}>
         {(!Platform.OS.includes('web') || process.env.EXPO_PUBLIC_GOOGLE_MAPS_WEB_API_KEY) && (
           <IconButton
@@ -459,7 +461,7 @@ export default function Explore() {
           style={s.navItem}
           accessibilityLabel="Explore"
           onPress={() => {
-            setKind('All');
+            setKinds([]);
             setYear('');
             changeQuery('');
           }}
@@ -498,12 +500,28 @@ export default function Explore() {
               <Text style={ui.subtitle}>Explore the archive</Text>
               <IconButton icon="close" label="Close filters" onPress={() => setFilterOpen(false)} />
             </View>
-            <Text style={ui.label}>Artwork type</Text>
+            <Text style={ui.label}>Artwork types</Text>
+            <Text style={ui.muted}>Choose any number. Results include any selected type.</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-              {['All', 'Piece', 'Mural', 'Lettering', 'Stencil', 'Other'].map((k) => (
-                <Chip key={k} text={k} active={kind === k} onPress={() => setKind(k)} />
+              <Chip text="All" active={kinds.length === 0} onPress={() => setKinds([])} />
+              {(['Piece', 'Mural', 'Lettering', 'Stencil', 'Other'] as const).map((kind) => (
+                <Chip key={kind} text={kind} active={kinds.includes(kind)} onPress={() => toggleKind(kind)} />
               ))}
             </View>
+            <Pressable accessibilityRole="button" accessibilityState={{ expanded: typeHelpOpen }}
+              onPress={() => setTypeHelpOpen((open) => !open)} style={{ paddingVertical: 8 }}>
+              <Text style={[ui.label, { color: colors.green }]}>What do these types mean?</Text>
+            </Pressable>
+            {typeHelpOpen && (
+              <View style={{ gap: 10 }}>
+                <Text style={ui.muted}>Piece: Short for “masterpiece”: a developed graffiti painting, often with elaborate letters, several colours, outlines and shading.</Text>
+                <Text style={ui.muted}>Mural: A painting made directly on a wall, often a large image, portrait or scene.</Text>
+                <Text style={ui.muted}>Lettering: Our broad category for artwork centred on letters or words, including signatures (tags), quick bubble letters (throw-ups) and calligraphy.</Text>
+                <Text style={ui.muted}>Stencil: An image or text made by applying paint through a cut-out template, sometimes in several layers.</Text>
+                <Text style={ui.muted}>Other: Work that does not fit these categories, such as stickers, pasted posters or mixed techniques.</Text>
+                <Text style={ui.muted}>These terms overlap: a piece usually uses lettering, and a mural can use stencils. Filters use the type saved with each artwork.</Text>
+              </View>
+            )}
             <Field
               label="Year photographed"
               value={year}
@@ -518,7 +536,7 @@ export default function Explore() {
               secondary
               onPress={() => {
                 setYear('');
-                setKind('All');
+                setKinds([]);
                 setFilterOpen(false);
               }}
             />
@@ -530,7 +548,7 @@ export default function Explore() {
 }
 const s = StyleSheet.create({
   panel: { position: 'absolute' },
-  panelContent: { flexGrow: 1, justifyContent: 'space-between', gap: 20, paddingBottom: 2 },
+  panelContent: { pointerEvents: 'box-none', flexGrow: 1, justifyContent: 'space-between', gap: 20, paddingBottom: 2 },
   top: { gap: 11 },
   brandRow: {
     flexDirection: 'row',

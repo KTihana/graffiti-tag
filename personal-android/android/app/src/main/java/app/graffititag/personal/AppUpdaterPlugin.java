@@ -102,6 +102,12 @@ public class AppUpdaterPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void reloadAppFiles(PluginCall call) {
+        ((MainActivity) getActivity()).refreshAppFiles(true);
+        call.resolve();
+    }
+
+    @PluginMethod
     public void install(PluginCall call) {
         try {
             validate(apk());

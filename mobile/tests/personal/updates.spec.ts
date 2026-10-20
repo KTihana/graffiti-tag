@@ -5,11 +5,11 @@ const release = (version: string) => ({ tag_name: `v${version}-personal`, body: 
 test('downloads inside the app, reports progress, retries errors, and opens the installer', async ({ page }) => {
   let offline = false;
   let version = '9.0.0';
-  await page.addInitScript(() => {
+  await page.addInitScript((installedVersion: string) => {
     const state = window as Window & { GraffitiNative?: unknown; updateDownloads?: string[]; updateInstalls?: number };
     state.GraffitiNative = {
       isNative: true,
-      getAppVersion: async () => '1.0.6',
+      getAppVersion: async () => installedVersion,
       downloadUpdate: async (url: string, onProgress: (percent: number | null) => void) => {
         (state.updateDownloads ??= []).push(url);
         onProgress(35);
@@ -22,7 +22,7 @@ test('downloads inside the app, reports progress, retries errors, and opens the 
         if (state.updateInstalls === 1) throw new Error('Allow updates from Graffiti Tag, then tap Install update again.');
       },
     };
-  });
+  }, PERSONAL_APP_VERSION);
   await page.route(api, (route) => offline ? route.abort() : route.fulfill({ json: release(version) }));
   await page.goto('/account');
   await expect(page.getByText('Version 9.0.0 is available.', { exact: true })).toBeVisible();

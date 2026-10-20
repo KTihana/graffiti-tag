@@ -1,4 +1,4 @@
-import type { Contribution, Photo, Point, Tag, TagFields, Viewport } from './types';
+import type { ArtType, Contribution, Photo, Point, Tag, TagFields, Viewport } from './types';
 
 export function dateLabel(p: Pick<Photo, 'precision' | 'year' | 'takenOn'>): string {
   if (p.precision === 'unknown' || p.year === null) return 'Date unknown';
@@ -88,7 +88,7 @@ export function inViewport(tag: Point, v: Viewport): boolean {
     dLon <= Math.min(180, v.longitudeDelta / 2)
   );
 }
-export function matches(tag: Tag, query: string, kind: string, year: string): boolean {
+export function matches(tag: Tag, query: string, kinds: readonly ArtType[], year: string): boolean {
   const searchable = [
     tag.title,
     tag.description,
@@ -97,11 +97,11 @@ export function matches(tag: Tag, query: string, kind: string, year: string): bo
     .join(' ')
     .toLowerCase();
   if (query && !searchable.includes(query.toLowerCase())) return false;
-  const artworks = kind === 'All' ? tag.artworks : tag.artworks.filter((a) => a.kind === kind);
-  if (kind !== 'All' && !artworks.length) return false;
+  const artworks = kinds.length === 0 ? tag.artworks : tag.artworks.filter((a) => kinds.includes(a.kind));
+  if (kinds.length > 0 && !artworks.length) return false;
   return tag.photos.some(
     (p) =>
-      (kind === 'All' || artworks.some((a) => a.id === p.artworkId)) &&
+      (kinds.length === 0 || artworks.some((a) => a.id === p.artworkId)) &&
       (!year || p.year === Number(year)),
   );
 }

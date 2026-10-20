@@ -1,5 +1,5 @@
 import { build } from 'esbuild';
-import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { copyFile, cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -49,5 +49,7 @@ await build({
   minify: true,
   sourcemap: false,
 });
+
+await copyFile(path.join(root, 'src/app-files-recovery.js'), path.join(destination, 'app-files-recovery.js'));
 
 console.log(`Copied ${source} to www, removed PWA worker registration, and bundled GraffitiNative bridge.`);

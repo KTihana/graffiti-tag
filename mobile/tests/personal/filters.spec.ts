@@ -1,0 +1,44 @@
+import { test, expect } from '@playwright/test';
+
+test('artwork filters allow multiple selections, independent removal, and reset', async ({ page }) => {
+  await page.goto('/');
+  const filters = page.getByRole('button', { name: 'Filters', exact: true });
+  await filters.click();
+  const mural = page.getByRole('button', { name: 'Mural', exact: true });
+  const stencil = page.getByRole('button', { name: 'Stencil', exact: true });
+  const all = page.getByRole('button', { name: 'All', exact: true });
+  await expect(all).toHaveAttribute('aria-pressed', 'true');
+  await mural.click();
+  await stencil.click();
+  await expect(mural).toHaveAttribute('aria-pressed', 'true');
+  await expect(stencil).toHaveAttribute('aria-pressed', 'true');
+  await expect(all).toHaveAttribute('aria-pressed', 'false');
+  await page.getByLabel('Year photographed', { exact: true }).fill('2018');
+  await page.getByRole('button', { name: 'Show tags', exact: true }).click();
+  await filters.click();
+  await expect(mural).toHaveAttribute('aria-pressed', 'true');
+  await expect(stencil).toHaveAttribute('aria-pressed', 'true');
+  await mural.click();
+  await expect(mural).toHaveAttribute('aria-pressed', 'false');
+  await expect(stencil).toHaveAttribute('aria-pressed', 'true');
+  await stencil.click();
+  await expect(all).toHaveAttribute('aria-pressed', 'true');
+  await mural.click();
+  await stencil.click();
+  await all.click();
+  await expect(mural).toHaveAttribute('aria-pressed', 'false');
+  await expect(stencil).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.getByLabel('Year photographed', { exact: true })).toHaveValue('2018');
+  await mural.click();
+  await page.getByRole('button', { name: 'Reset filters', exact: true }).click();
+  await filters.click();
+  await expect(all).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByLabel('Year photographed', { exact: true })).toHaveValue('');
+  await page.getByRole('button', { name: 'What do these types mean?', exact: true }).click();
+  await expect(page.getByText('Piece: Short for', { exact: false })).toBeVisible();
+  await expect(page.getByText('These terms overlap:', { exact: false })).toBeAttached();
+  await page.waitForTimeout(400); // Let the modal fade finish before visual verification.
+  await page.screenshot({ path: 'artifacts/artwork-filter-guide.png' });
+  await page.getByRole('button', { name: 'What do these types mean?', exact: true }).click();
+  await expect(page.getByText('Piece: Short for', { exact: false })).toHaveCount(0);
+});
