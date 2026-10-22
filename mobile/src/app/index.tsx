@@ -30,8 +30,12 @@ import { colors, fonts, ui } from '../theme';
 import { INITIAL_VIEW, type ArtType, type Point, type Tag } from '../types';
 
 export default function Explore() {
-  const { width, height } = useWindowDimensions(),
-    sidePanel = width >= 600 && (width > height || width > 800),
+  const { width, height: windowHeight } = useWindowDimensions();
+  const [searchViewport, setSearchViewport] = useState<{ width: number; height: number } | null>(null);
+  // A keyboard resize must not switch layouts or lift the map controls/navigation.
+  // Keep the full canvas behind the keyboard until it closes; rotations still reflow.
+  const height = searchViewport?.width === width ? Math.max(windowHeight, searchViewport.height) : windowHeight;
+  const sidePanel = width >= 600 && (width > height || width > 800),
     scrollPanel = sidePanel || height < 700,
     panelWidth = width > 1000 ? 370 : 320,
     insets = useSafeAreaInsets();
@@ -51,7 +55,10 @@ export default function Explore() {
     current.includes(kind) ? current.filter((value) => value !== kind) : [...current, kind],
   );
   const filtersActive = kinds.length > 0 || !!year;
-  const [topHeight, setTopHeight] = useState(200);
+  const [searchBottom, setSearchBottom] = useState(127);
+  if (searchViewport && (searchViewport.width !== width || (!searchFocused && windowHeight >= searchViewport.height))) {
+    setSearchViewport(null);
+  }
   const [draft, setDraft] = useState<Point>();
   useEffect(() => {
     if (!draft) return;
@@ -153,7 +160,6 @@ export default function Explore() {
   const topPanel = (
     <View
       pointerEvents="box-none"
-      onLayout={(event) => setTopHeight(event.nativeEvent.layout.height)}
       style={s.top}
     >
       <View style={s.brandRow}>
@@ -182,7 +188,8 @@ export default function Explore() {
           onPress={() => router.push('/account')}
         />
       </View>
-      <View style={[s.search, searchFocused && s.searchFocused]}>
+      <View style={[s.search, searchFocused && s.searchFocused]}
+        onLayout={({ nativeEvent: { layout } }) => setSearchBottom(layout.y + layout.height)}>
         <Icon name="search" size={19} color={colors.muted} />
         <TextInput
           ref={searchInput}
@@ -193,7 +200,10 @@ export default function Explore() {
           value={query}
           onChangeText={changeQuery}
           onSubmitEditing={searchPlace}
-          onFocus={() => setSearchFocused(true)}
+          onFocus={() => {
+            setSearchViewport((current) => current?.width === width ? current : { width, height: windowHeight });
+            setSearchFocused(true);
+          }}
           onBlur={() => setSearchFocused(false)}
           returnKeyType="search"
         />
@@ -222,6 +232,32 @@ export default function Explore() {
       {tags.length >= 250 && (
         <Notice text="Showing up to 250 walls. Zoom in to explore a smaller area." />
       )}
+      {!!error && (
+        <Pressable onPress={() => setError('')}>
+          <Notice text={error} error />
+        </Pressable>
+      )}
+      {!!locationError && (
+          <Pressable accessibilityRole="button" accessibilityLabel="Dismiss location message" onPress={dismissError}>
+          <Notice text={locationError} error />
+        </Pressable>
+      )}
+    </View>
+  );
+  const searchOverlay = (query.trim() || activePlace || searchError) ? (
+    <ScrollView
+      testID="search-overlay"
+      style={[s.searchOverlay, {
+        top: insets.top + (scrollPanel ? 12 : 18) + searchBottom + 11,
+        left: insets.left + (scrollPanel ? 12 : 18),
+        width: sidePanel ? panelWidth : undefined,
+        right: sidePanel ? undefined : insets.right + 72,
+        maxHeight: Math.max(100, windowHeight - insets.top - searchBottom - 60),
+      }]}
+      contentContainerStyle={{ gap: 11 }}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="none"
+    >
       {query.trim().length > 0 && (
         <Pressable accessibilityRole="button" style={s.searchResult} onPress={searchPlace} disabled={searching}>
           <Icon name="location-outline" size={18} />
@@ -260,18 +296,8 @@ export default function Explore() {
           <Notice text={searchError} error />
         </Pressable>
       )}
-      {!!error && (
-        <Pressable onPress={() => setError('')}>
-          <Notice text={error} error />
-        </Pressable>
-      )}
-      {!!locationError && (
-          <Pressable accessibilityRole="button" accessibilityLabel="Dismiss location message" onPress={dismissError}>
-          <Notice text={locationError} error />
-        </Pressable>
-      )}
-    </View>
-  );
+    </ScrollView>
+  ) : null;
   const bottomPanel = (
     <View
       pointerEvents="box-none"
@@ -376,7 +402,7 @@ export default function Explore() {
     </View>
   );
   return (
-    <View style={ui.screen}>
+    <View style={[ui.screen, searchViewport?.width === width && { height, minHeight: height, maxHeight: height }]}>
       <View style={[StyleSheet.absoluteFill, sidePanel ? { left: insets.left + panelWidth + 24 } : { bottom: insets.bottom + 82 }]} >
       <ArchiveMap
         tags={visible}
@@ -409,9 +435,10 @@ export default function Explore() {
         keyboardDismissMode="none"
       >
         {topPanel}
-        {!places.length && bottomPanel}
+        {bottomPanel}
       </ScrollView>
-      <View style={[s.rightTools, { top: insets.top + (scrollPanel ? 12 : Math.max(220, topHeight + 30)), right: insets.right + 12 }]}>
+      {searchOverlay}
+      <View style={[s.rightTools, { top: insets.top + (scrollPanel ? 12 : 220), right: insets.right + 12 }]}>
         {(!Platform.OS.includes('web') || process.env.EXPO_PUBLIC_GOOGLE_MAPS_WEB_API_KEY) && (
           <IconButton
             icon={satellite ? 'map-outline' : 'layers-outline'}
@@ -583,9 +610,11 @@ const s = StyleSheet.create({
     backgroundColor: colors.white,
     gap: 10,
   },
-  searchFocused: { borderWidth: 2, borderColor: colors.green },
+  searchFocused: { borderColor: colors.green },
   searchInput: {
     flex: 1,
+    minWidth: 0,
+    width: 0,
     fontFamily: fonts.body,
     fontSize: 13,
     color: colors.ink,
@@ -603,6 +632,7 @@ const s = StyleSheet.create({
     padding: 14,
     gap: 8,
   },
+  searchOverlay: { position: 'absolute', zIndex: 20, borderRadius: 14 },
   rightTools: { position: 'absolute', gap: 8 },
   bottom: { gap: 0 },
   demoPill: {
@@ -626,6 +656,7 @@ const s = StyleSheet.create({
     borderColor: '#C5DF5D',
   },
   discovery: {
+    minHeight: 210,
     borderRadius: 22,
     padding: 18,
     backgroundColor: colors.paper,

@@ -103,3 +103,17 @@ Search matches any category of the photographed artwork, together with the photo
 Backup validation checks the full category list, including revision snapshots.
 Community deployments must apply `004_artwork_categories.sql` before using this client;
 the personal Android app stores its categories locally and needs no server migration.
+
+### Stable search layout (1.0.10)
+
+Explore keeps its full canvas dimensions while the search keyboard is open, so
+opening the keyboard does not switch to the compact panel or lift navigation and
+map controls. Width changes still allow rotation/responsive layout changes.
+Search suggestions, results and errors occupy a separate bounded scroll panel;
+they no longer resize the control area or remove the Add tag/discovery panel.
+The input remains mounted through keyboard changes and can shrink inside narrow
+search bars without displacing the Filters button.
+
+`tests/personal/search-layout.spec.ts` checks control/map bounds before and during
+keyboard resize, typing, a pending search, displayed results and dismissal at phone,
+tablet portrait and landscape sizes.
